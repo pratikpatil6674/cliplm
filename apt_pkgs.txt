@@ -1,0 +1,2 @@
+libxcb-cursor0
+xdotool
