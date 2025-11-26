@@ -11,6 +11,8 @@ from PySide6.QtCore import Qt, Signal, QSize, QMimeData
 
 from ClipboardCard import ClipboardCard
 from PySide6.QtWidgets import QAbstractItemView
+from ClipData import ClipData
+
 class IClipboardTab:
     def populate_clipboard_list(self, clipboard_history):
         ...
@@ -74,13 +76,12 @@ class ClipboardTab(QWidget, IClipboardTab):
     def _connect_signals(self):
         self.clear_button.clicked.connect(self.clearRequested.emit)
 
-    def add_list_item(self, id: str, mime_data: QMimeData):
+    def add_list_item(self, id: str, clip_data: ClipData):
         list_item = QListWidgetItem()
-        list_item_widget = ClipboardCard(id, mime_data)
-        list_item_widget.copyRequested.connect(lambda text: self.presenter.handle_copy_request(text))
-        list_item_widget.pasteRequested.connect(lambda text: self.presenter.handle_paste_request(text))
-        list_item_widget.favRequested.connect(lambda id, text: self.presenter.handle_fav_request(id))
-        list_item_widget.favRequested.connect(lambda id, text: self.favorites_presenter.handle_fav_request(id, text))
+        list_item_widget = ClipboardCard(id, clip_data)
+        list_item_widget.copyRequested.connect(lambda mime_data: self.presenter.handle_copy_request(mime_data))
+        list_item_widget.pasteRequested.connect(lambda mime_data: self.presenter.handle_paste_request(mime_data))
+        list_item_widget.favRequested.connect(lambda id: self.handle_fav_request(id))
         list_item.setSizeHint(list_item_widget.sizeHint())
         self.list.insertItem(0, list_item)
         self.list.setItemWidget(list_item, list_item_widget)
@@ -94,11 +95,16 @@ class ClipboardTab(QWidget, IClipboardTab):
         self.list.clear()
         self.id_to_list_item.clear()
     
+    def handle_fav_request(self, id: str):
+        self.presenter.handle_fav_request(id)
+        self.favorites_presenter.handle_fav_request(id)
+
     def populate_clipboard_list(self, clipboard_history):
         """Populate clipboard list."""
         self.list.clear()
-        for index, (id, text) in enumerate(clipboard_history.items()):
-            self.add_list_item(id, text)
+        for clip in clipboard_history:
+            clip_data = ClipData.from_database(clip)
+            self.add_list_item(clip['clip_id'], clip_data)
             # list_item = QListWidgetItem()
             # list_item_widget = ClipboardCard(id, text)
             # list_item_widget.copyRequested.connect(lambda text: self.presenter.handle_copy_request(text))

@@ -1,8 +1,9 @@
+from ClipData import ClipData
 
 class IFavoritesPresenter:
-    def handle_copy_request(self, text):
+    def handle_copy_request(self, qmime_data):
         ...
-    def handle_paste_request(self, text):
+    def handle_paste_request(self, qmime_data):
         ...
     def clear_clipboard(self):
         ...
@@ -13,20 +14,22 @@ class FavoritesPresenter():
         self.model = model 
         self.view = view
 
-    def handle_copy_request(self, text):
-        self.clipboard_service.copy_text(text)
+    def handle_copy_request(self, qmime_data):
+        self.clipboard_service.set_clipboard(qmime_data, trigger_paste=False)
 
-    def handle_paste_request(self, text):
-        self.clipboard_service.paste_text(text)
-
-    def handle_fav_request(self, id, text):
+    def handle_paste_request(self, qmime_data):
+        self.clipboard_service.set_clipboard(qmime_data, trigger_paste=True)
+        
+    def handle_fav_request(self, id):
         # ID is received from clipboard tab list item
-        self.model.add(id, text)
-        self.view.add_list_item(id, text)
+        clip = self.model.get_clip(id)
+        clip_data = ClipData.from_database(clip)
+        self.view.add_list_item(clip['clip_id'], clip_data)
 
     def handle_delete_request(self, id):
-        self.model.delete(id)
+        self.model.delete_clip(id)
         self.view.delete_list_item(id)
         
     def refresh_view(self):
-        self.view.populate_fav_list(self.model.get_all())
+        clips = self.model.list_clips()
+        self.view.populate_fav_list(clips)

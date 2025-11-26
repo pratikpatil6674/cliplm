@@ -1,8 +1,10 @@
+import time
+import os
 from ClipData import ClipData
 class IClipboardPresenter:
-    def handle_copy_request(self, text):
+    def handle_copy_request(self, qmime_data):
         ...
-    def handle_paste_request(self, text):
+    def handle_paste_request(self, qmime_data):
         ...
     def clear_clipboard(self):
         ...
@@ -16,33 +18,33 @@ class ClipboardPresenter(IClipboardPresenter):
         self.view.clearRequested.connect(self.clear_clipboard)
         self.translate_presenter = None
 
-    def handle_copy_request(self, text):
-        self.clipboard_service.copy_text(text)
+    def handle_copy_request(self, qmime_data):
+        self.clipboard_service.set_clipboard(qmime_data, trigger_paste=False)
 
-    def handle_paste_request(self, text):
-        print("paste request ", id(text))
-        self.clipboard_service.paste_text(text)
+    def handle_paste_request(self, qmime_data):
+        self.clipboard_service.set_clipboard(qmime_data, trigger_paste=True)
 
     def handle_fav_request(self, id):
-        self.model.delete(id)
+        self.model.move_row_to(self.model.base.FAVS_SCHEMA_NAME, id)
         self.view.delete_list_item(id)
-        self.refresh_view()
 
     def handle_clipboard_change(self, mime_data):
-        if self.translate_presenter:
-            self.translate_presenter.translate_text(mime_data)
+        if self.translate_presenter and self.translate_presenter.view.is_translate_enabled():
+            text_data = mime_data.data("text/plain").data().decode('utf-8')
+            self.translate_presenter.translate_text(text_data)
+            print(f"translate triggered for: {text_data}")
+            return
 
-        id = self.model.add(text)
-        print("clipboard change mime data -> data", mime_data.formats(), mime_data.data("text/plain"))
-        clip_data = ClipData(mime_data)
+        clip_data = ClipData.from_qmime(mime_data)
+        clip_id = self.model.add_clip(clip_data.bytes_data, clip_data.mime_type)
+        # print(f"clipboard change mime data -> data, id: {clip_id}", mime_data.formats(), mime_data.data("text/plain"))
         if clip_data.mime_type:
-            self.view.add_list_item(id, clip_data)
-        self.refresh_view()
+            self.view.add_list_item(clip_id, clip_data)
 
     def clear_clipboard(self):
         self.model.delete_all()
         self.view.clear_list()
-        # self.refresh_view()
 
     def refresh_view(self):
-        self.view.populate_clipboard_list(self.model.get_all())
+        clips = self.model.list_clips()
+        self.view.populate_clipboard_list(clips)

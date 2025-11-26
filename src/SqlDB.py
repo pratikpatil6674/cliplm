@@ -1,12 +1,16 @@
 """
-sqlite database implementation:
-- BaseDB: connection, pragmas, file storage helpers, common utilities.
-- ClipboardTable: operations for clipboard table (add/get/list/delete/search/dedupe).
-- FavouritesTable: operations for favourites table.
-- NotesTable: operations for text_notes table.
-- ClipboardStore: facade composing the three tables.
+- BaseDB: connection, PRAGMAS, schema creation for two identical buckets: 'clipboard' and 'favourites'.
+- ClipboardTable: generic table wrapper operating on any table with the clipboard schema.
+- NotesTable: text notes operations.
+- ClipboardStore: facade exposing `clipboard` and `favourites` as separate ClipboardTable objects and convenience move methods.
 
-Optional dependency: Pillow for thumbnail generation.
+Behavior:
+- 'clipboard' and 'favourites' are independent tables with identical schema.
+- Moving an item from one bucket to another is atomic (transactional), updates the FTS index,
+  and preserves on-disk files (no deletion).
+- Use a single shared sqlite connection across table objects.
+
+Optional dependency: Pillow (for thumbnail generation). If not available thumbnail generation is skipped.
 """
 
 from __future__ import annotations
@@ -19,12 +23,13 @@ import threading
 import datetime
 from typing import Optional, List, Dict, Any, Tuple
 
-# Optional Pillow
+# Optional Pillow for thumbnails
 try:
     from PIL import Image
     PIL_AVAILABLE = True
 except Exception:
     PIL_AVAILABLE = False
+
 
 def iso_now() -> str:
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
@@ -32,8 +37,11 @@ def iso_now() -> str:
 
 class BaseDB:
     """
-    Common DB connection, PRAGMA setup, file storage helpers, and utilities.
+    Shared DB connection, pragmas, schema creation for both clipboard-like tables and helpers.
     """
+
+    CLIP_SCHEMA_NAME = "clipboard"      # canonical name
+    FAVS_SCHEMA_NAME = "favourites"     # canonical name
 
     def __init__(self, db_path: str, data_dir: str, journal_mode: str = "WAL"):
         self.db_path = os.path.abspath(db_path)
@@ -43,33 +51,35 @@ class BaseDB:
         os.makedirs(self.thumbs_dir(), exist_ok=True)
 
         self._lock = threading.RLock()
+        # Single shared connection
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
-        # self._configure_pragmas(journal_mode)
+        self._configure_pragmas(journal_mode)
         self._init_schema()
 
-    # ----------------- PRAGMA and schema -----------------
+    # ---------------- PRAGMAS ----------------
     def _configure_pragmas(self, journal_mode: str):
         cur = self.conn.cursor()
-        cur.execute("PRAGMA journal_mode = ?;", (journal_mode,))
+        cur.execute(f"PRAGMA journal_mode = {journal_mode};")
         cur.execute("PRAGMA synchronous = NORMAL;")
         cur.execute("PRAGMA temp_store = MEMORY;")
-        cur.execute("PRAGMA foreign_keys = ON;")
+        cur.execute("PRAGMA foreign_keys = OFF;")  # no FK between buckets by design
         self.conn.commit()
 
+    # ---------------- Schema ----------------
     def _init_schema(self):
         """
-        Create tables used by subclasses. Subclasses may extend schema further if required.
+        Create two identical tables (clipboard & favourites) and supporting structures (FTS5).
         """
         with self._lock:
             cur = self.conn.cursor()
-            # clipboard table
-            cur.execute("""
-            CREATE TABLE IF NOT EXISTS clipboard (
+            # Define a common clipboard-like schema. Both tables will use it.
+            base_table_sql = """
+            CREATE TABLE IF NOT EXISTS {table} (
                 clip_id TEXT PRIMARY KEY,
                 content_type TEXT,
                 content_size INTEGER,
-                content_hash TEXT UNIQUE,
+                content_hash TEXT,
                 is_file INTEGER DEFAULT 0,
                 file_path TEXT,
                 file_name TEXT,
@@ -83,41 +93,27 @@ class BaseDB:
                 metadata TEXT,
                 created_at TEXT,
                 modified_at TEXT
-            );""")
-            # favourites
-            cur.execute("""
-            CREATE TABLE IF NOT EXISTS favourites (
-                fav_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                clip_id TEXT NOT NULL,
-                added_at TEXT,
-                note TEXT,
-                FOREIGN KEY(clip_id) REFERENCES clipboard(clip_id) ON DELETE CASCADE
-            );""")
-            # text notes
-            cur.execute("""
-            CREATE TABLE IF NOT EXISTS text_notes (
-                note_id TEXT PRIMARY KEY,
-                title TEXT,
-                main_text TEXT,
-                preview_text TEXT,
-                tags TEXT,
-                created_at TEXT,
-                modified_at TEXT
-            );""")
-            # FTS5 virtual table for searching clip content. Keep separate table for performance.
+            );
+            """
+            cur.execute(base_table_sql.format(table=self.CLIP_SCHEMA_NAME))
+            cur.execute(base_table_sql.format(table=self.FAVS_SCHEMA_NAME))
+
+            # FTS5 table for searching across all buckets (clip_id unique across DB)
             cur.execute("""
             CREATE VIRTUAL TABLE IF NOT EXISTS clip_fts USING fts5(
                 clip_id UNINDEXED,
                 content_text,
                 tokenize = 'porter'
-            );""")
-            # index hints
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_clip_created ON clipboard(created_at);")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_clip_hash ON clipboard(content_hash);")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_fav_clip ON favourites(clip_id);")
+            );
+            """)
+            # Indices for performance
+            cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{self.CLIP_SCHEMA_NAME}_created ON {self.CLIP_SCHEMA_NAME}(created_at);")
+            cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{self.FAVS_SCHEMA_NAME}_created ON {self.FAVS_SCHEMA_NAME}(created_at);")
+            cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{self.CLIP_SCHEMA_NAME}_hash ON {self.CLIP_SCHEMA_NAME}(content_hash);")
+            cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{self.FAVS_SCHEMA_NAME}_hash ON {self.FAVS_SCHEMA_NAME}(content_hash);")
             self.conn.commit()
 
-    # ----------------- File storage helpers -----------------
+    # ---------------- File storage helpers ----------------
     def files_dir(self) -> str:
         return os.path.join(self.data_dir, "files")
 
@@ -139,7 +135,7 @@ class BaseDB:
         os.makedirs(folder, exist_ok=True)
         return os.path.join(folder, f"{uuid.uuid4()}.thumb")
 
-    # ----------------- DB helpers -----------------
+    # ---------------- DB helpers ----------------
     def _execute(self, sql: str, params: Tuple = (), commit: bool = False):
         with self._lock:
             cur = self.conn.cursor()
@@ -153,7 +149,7 @@ class BaseDB:
             self.conn.commit()
             self.conn.close()
 
-    # ----------------- Utilities -----------------
+    # ---------------- Utilities ----------------
     @staticmethod
     def sha256(b: bytes) -> str:
         h = hashlib.sha256()
@@ -167,13 +163,12 @@ class BaseDB:
     @staticmethod
     def json_loads(s: Optional[str]) -> Any:
         if not s:
-            return {}
+            return []
         try:
             return json.loads(s)
         except Exception:
-            return {}
+            return []
 
-    # Thumbnail generation (optional)
     def generate_image_thumbnail(self, content_bytes: bytes, max_size: Tuple[int, int] = (256, 256)) -> Optional[bytes]:
         if not PIL_AVAILABLE:
             return None
@@ -187,11 +182,19 @@ class BaseDB:
         except Exception:
             return None
 
-    # Rebuild FTS (subclasses may call)
     def rebuild_clip_fts(self):
+        """
+        Rebuild clip_fts from both tables.
+        """
         with self._lock:
             self._execute("DELETE FROM clip_fts;", commit=True)
-            cur = self._execute("SELECT clip_id, preview_text, full_text, file_name, tags FROM clipboard;")
+            cur = self._execute(f"SELECT clip_id, preview_text, full_text, file_name, tags FROM {self.CLIP_SCHEMA_NAME};")
+            rows = cur.fetchall()
+            for r in rows:
+                tags = " ".join(self.json_loads(r["tags"]) or [])
+                content_text = " ".join(filter(None, [r["preview_text"] or "", r["full_text"] or "", r["file_name"] or "", tags]))
+                self._execute("INSERT INTO clip_fts (clip_id, content_text) VALUES (?, ?);", (r["clip_id"], content_text))
+            cur = self._execute(f"SELECT clip_id, preview_text, full_text, file_name, tags FROM {self.FAVS_SCHEMA_NAME};")
             rows = cur.fetchall()
             for r in rows:
                 tags = " ".join(self.json_loads(r["tags"]) or [])
@@ -200,14 +203,36 @@ class BaseDB:
             self.conn.commit()
 
 
-# ----------------- ClipboardTable -----------------
-class ClipboardTable(BaseDB):
+# ---------------- Generic ClipboardTable ----------------
+class ClipboardTable:
     """
-    Clipboard-specific operations: add_clip, get_clip, list_clips, delete_clip, search, dedupe, purge_old.
+    Generic wrapper for a clipboard-like table. Use instances for 'clipboard' and 'favourites'.
     """
 
-    FILE_ON_DISK_THRESHOLD = 256 * 1024  # store >256KB to disk by default
+    FILE_ON_DISK_THRESHOLD = 256 * 1024  # 256 KB
 
+    def __init__(self, base: BaseDB, table_name: str):
+        self._validate_table_name(table_name)
+        self.base = base
+        self.table = table_name
+        # reuse connection & helpers
+        self.conn = base.conn
+        self._lock = base._lock
+        self._execute = base._execute
+        self.sha256 = base.sha256
+        self.json_dumps = base.json_dumps
+        self.json_loads = base.json_loads
+        self.generate_image_thumbnail = base.generate_image_thumbnail
+        self._path_for_new_file = base._path_for_new_file
+        self.rebuild_clip_fts = base.rebuild_clip_fts
+
+    @staticmethod
+    def _validate_table_name(name: str):
+        # allow only alphanumerics and underscore to avoid SQL injection in f-strings
+        if not name or not all(c.isalnum() or c == "_" for c in name):
+            raise ValueError("Invalid table name")
+
+    # ---------------- CRUD ----------------
     def add_clip(self,
                  content: bytes,
                  mime: str,
@@ -221,15 +246,16 @@ class ClipboardTable(BaseDB):
                  metadata: Optional[Dict[str, Any]] = None
                  ) -> str:
         """
-        Add a clipboard item. Returns clip_id. Deduplicates by SHA-256 content hash.
+        Insert new clip into this table. Deduplicate only within this table.
+        Returns clip_id.
         """
         content_hash = self.sha256(content)
         now = iso_now()
         tags_json = self.json_dumps(tags or [])
-        metadata_json = self.json_dumps(metadata or {})
+        metadata_json = json.dumps(metadata or {})
 
-        # Deduplicate
-        cur = self._execute("SELECT clip_id FROM clipboard WHERE content_hash = ? LIMIT 1;", (content_hash,))
+        # Deduplicate within this bucket
+        cur = self._execute(f"SELECT clip_id FROM {self.table} WHERE content_hash = ? LIMIT 1;", (content_hash,))
         row = cur.fetchone()
         if row:
             return row["clip_id"]
@@ -242,12 +268,16 @@ class ClipboardTable(BaseDB):
         thumb_blob = None
         full_text = None
 
-        # quick heuristic for text extraction
         if mime and (mime.startswith("text") or mime.endswith("xml") or mime.endswith("json")):
             try:
                 full_text = content.decode("utf-8", errors="replace")
+                if not preview_text:
+                    preview_text = full_text[:500]  # First 500 chars as preview
+                    if len(full_text) > 500:
+                        preview_text += "..."
             except Exception:
                 full_text = None
+                preview_text = None
 
         if save_file_to_disk_if_large and size > self.FILE_ON_DISK_THRESHOLD:
             ext = None
@@ -257,20 +287,15 @@ class ClipboardTable(BaseDB):
             with open(file_path, "wb") as f:
                 f.write(content)
             is_file = 1
-
-            # generate thumbnail if image
             if store_thumbnail and mime and mime.startswith("image"):
                 thumb_blob = self.generate_image_thumbnail(content)
-
         else:
-            # small content - do not persist content bytes in table by default (keeps DB small).
-            # but create thumbnail if image
             if store_thumbnail and mime and mime.startswith("image"):
                 thumb_blob = self.generate_image_thumbnail(content)
 
         # Insert row
-        self._execute("""
-            INSERT INTO clipboard (
+        self._execute(f"""
+            INSERT INTO {self.table} (
                 clip_id, content_type, content_size, content_hash,
                 is_file, file_path, file_name, thumbnail, preview_text,
                 full_text, source_app, window_title, tags, language, metadata,
@@ -286,13 +311,16 @@ class ClipboardTable(BaseDB):
         return clip_id
 
     def get_clip(self, clip_id: str, load_file: bool = False) -> Optional[Dict[str, Any]]:
-        cur = self._execute("SELECT * FROM clipboard WHERE clip_id = ?;", (clip_id,))
+        cur = self._execute(f"SELECT * FROM {self.table} WHERE clip_id = ?;", (clip_id,))
         r = cur.fetchone()
         if not r:
             return None
         d = dict(r)
         d["tags"] = self.json_loads(d.get("tags"))
-        d["metadata"] = self.json_loads(d.get("metadata"))
+        try:
+            d["metadata"] = json.loads(d.get("metadata") or "{}")
+        except Exception:
+            d["metadata"] = {}
         if load_file and d.get("is_file"):
             try:
                 with open(d.get("file_path"), "rb") as f:
@@ -302,87 +330,178 @@ class ClipboardTable(BaseDB):
         return d
 
     def list_clips(self, limit: int = 100, offset: int = 0, order_by: str = "created_at DESC") -> List[Dict[str, Any]]:
-        cur = self._execute(f"SELECT clip_id, content_type, content_size, preview_text, created_at, source_app, file_name FROM clipboard ORDER BY {order_by} LIMIT ? OFFSET ?;", (limit, offset))
+        cur = self._execute(f"SELECT clip_id, content_type, content_size, preview_text, thumbnail, created_at, source_app, file_name FROM {self.table} ORDER BY {order_by} LIMIT ? OFFSET ?;", (limit, offset))
         return [dict(r) for r in cur.fetchall()]
 
     def delete_clip(self, clip_id: str, remove_file_from_disk: bool = True) -> bool:
-        row = self._execute("SELECT is_file, file_path FROM clipboard WHERE clip_id = ?;", (clip_id,)).fetchone()
+        row = self._execute(f"SELECT is_file, file_path FROM {self.table} WHERE clip_id = ?;", (clip_id,)).fetchone()
         if not row:
             return False
         file_path = row["file_path"]
-        self._execute("DELETE FROM clipboard WHERE clip_id = ?;", (clip_id,), commit=True)
-        self._execute("DELETE FROM clip_fts WHERE clip_id = ?;", (clip_id,), commit=True)
-        if remove_file_from_disk and file_path:
-            try:
-                os.remove(file_path)
-            except Exception:
-                pass
+        with self._lock:
+            # Delete from table and FTS
+            self._execute(f"DELETE FROM {self.table} WHERE clip_id = ?;", (clip_id,), commit=True)
+            self._execute("DELETE FROM clip_fts WHERE clip_id = ?;", (clip_id,), commit=True)
+            if remove_file_from_disk and file_path:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
         return True
 
+    def delete_all(self, remove_files_from_disk: bool = True) -> int:
+        """
+        Delete all rows from this clipboard bucket.
+        Does NOT touch other buckets.
+        Removes thumbnails and file_path targets from disk if requested.
+        Cleans FTS entries for this table.
+
+        Returns number of rows deleted.
+        """
+        with self._lock:
+            # Collect file paths first (only if we need to remove files)
+            file_paths = []
+            if remove_files_from_disk:
+                cur = self._execute(f"SELECT file_path FROM {self.table} WHERE is_file = 1;")
+                for r in cur.fetchall():
+                    if r["file_path"]:
+                        file_paths.append(r["file_path"])
+
+            # Count rows
+            cur = self._execute(f"SELECT COUNT(*) AS c FROM {self.table};")
+            count = cur.fetchone()["c"]
+
+            # Delete rows from this bucket
+            self._execute(f"DELETE FROM {self.table};", commit=True)
+
+            # Remove corresponding FTS entries
+            # FTS contains clip_id across both buckets, so we must remove only those belonging to this table.
+            self._execute("""
+                DELETE FROM clip_fts
+                WHERE clip_id NOT IN (
+                    SELECT clip_id FROM clipboard
+                    UNION
+                    SELECT clip_id FROM favourites
+                );
+            """, commit=True)
+
+            # Remove files from disk
+            if remove_files_from_disk:
+                for fp in file_paths:
+                    try:
+                        os.remove(fp)
+                    except Exception:
+                        pass
+
+            return count
+
     def search(self, query: str, limit: int = 100) -> List[Dict[str, Any]]:
-        # Use FTS5; if no results, fallback to LIKE.
-        cur = self._execute("SELECT c.* FROM clip_fts f JOIN clipboard c ON c.clip_id = f.clip_id WHERE clip_fts MATCH ? ORDER BY c.created_at DESC LIMIT ?;", (query, limit))
-        rows = cur.fetchall()
-        if rows:
-            return [dict(r) for r in rows]
-        q = f"%{query}%"
-        cur = self._execute("SELECT * FROM clipboard WHERE preview_text LIKE ? OR file_name LIKE ? ORDER BY created_at DESC LIMIT ?;", (q, q, limit))
+        # Search via FTS for clip_id match then filter by presence in this table
+        cur = self._execute("SELECT f.clip_id FROM clip_fts f WHERE clip_fts MATCH ? LIMIT ?;", (query, limit))
+        ids = [r["clip_id"] for r in cur.fetchall()]
+        if not ids:
+            # fallback LIKE in this table
+            q = f"%{query}%"
+            cur = self._execute(f"SELECT * FROM {self.table} WHERE preview_text LIKE ? OR file_name LIKE ? ORDER BY created_at DESC LIMIT ?;", (q, q, limit))
+            return [dict(r) for r in cur.fetchall()]
+        # Fetch only those ids that exist in this table (keeps buckets independent)
+        placeholders = ",".join("?" for _ in ids)
+        cur = self._execute(f"SELECT * FROM {self.table} WHERE clip_id IN ({placeholders}) ORDER BY created_at DESC LIMIT ?;", tuple(ids) + (limit,))
         return [dict(r) for r in cur.fetchall()]
 
-    def dedupe_keep_first(self) -> int:
+    # ---------------- Move row ----------------
+    def move_row_to(self, dest_table: str, clip_id: str) -> bool:
         """
-        Remove duplicate clipboard rows keeping the earliest clip_id per content_hash.
+        Atomically move a row from self.table to dest_table.
+        Both tables must have identical schema.
+        Returns True if moved, False if source row not found.
+        """
+        self._validate_table_name(dest_table)
+        src = self.table
+        dest = dest_table
+
+        with self._lock:
+            try:
+                cur = self.conn.cursor()
+                cur.execute("BEGIN;")
+                # 1) Fetch row from source
+                cur.execute(f"SELECT * FROM {src} WHERE clip_id = ?;", (clip_id,))
+                row = cur.fetchone()
+                if not row:
+                    cur.execute("ROLLBACK;")
+                    return False
+                row_dict = dict(row)
+
+                # 2) Delete from source
+                cur.execute(f"DELETE FROM {src} WHERE clip_id = ?;", (clip_id,))
+
+                # 3) Delete any existing FTS entry for this clip_id (to avoid duplicates)
+                cur.execute("DELETE FROM clip_fts WHERE clip_id = ?;", (clip_id,))
+
+                # 4) Insert into destination
+                columns = ", ".join(row_dict.keys())
+                placeholders = ", ".join("?" for _ in row_dict)
+                values = tuple(row_dict.values())
+                cur.execute(f"INSERT INTO {dest} ({columns}) VALUES ({placeholders});", values)
+
+                # 5) Insert into FTS for destination (content_text built from preview/full/file/tags)
+                tags = " ".join(self.json_loads(row_dict.get("tags")))
+                content_text = " ".join(filter(None, [row_dict.get("preview_text") or "", row_dict.get("full_text") or "", row_dict.get("file_name") or "", tags]))
+                cur.execute("INSERT INTO clip_fts (clip_id, content_text) VALUES (?, ?);", (clip_id, content_text))
+
+                cur.execute("COMMIT;")
+                return True
+            except Exception:
+                try:
+                    cur.execute("ROLLBACK;")
+                except Exception:
+                    pass
+                raise
+
+    # ---------------- Utilities ----------------
+    def dedupe_within_bucket(self) -> int:
+        """
+        Remove duplicate rows within this table based on content_hash, keeping the earliest clip_id.
         Returns number removed.
         """
-        cur = self._execute("""
-            DELETE FROM clipboard
-            WHERE clip_id NOT IN (
-                SELECT min(clip_id) FROM clipboard GROUP BY content_hash
-            );
-        """, commit=True)
-        removed = cur.rowcount
-        self.rebuild_clip_fts()
-        return removed
+        with self._lock:
+            cur = self._execute(f"""
+                DELETE FROM {self.table}
+                WHERE clip_id NOT IN (
+                    SELECT min(clip_id) FROM {self.table} GROUP BY content_hash
+                );
+            """, commit=True)
+            removed = cur.rowcount
+            self.base.rebuild_clip_fts()
+            return removed
 
     def purge_old(self, keep_last_n: int = 1000) -> int:
-        cur = self._execute("SELECT clip_id FROM clipboard ORDER BY created_at DESC LIMIT -1 OFFSET ?;", (keep_last_n,))
-        to_delete = [r["clip_id"] for r in cur.fetchall()]
-        removed = 0
-        for cid in to_delete:
-            if self.delete_clip(cid, remove_file_from_disk=True):
-                removed += 1
-        return removed
+        """
+        Keep only the most recent keep_last_n items in this table.
+        Returns number removed.
+        """
+        with self._lock:
+            cur = self._execute(f"SELECT clip_id FROM {self.table} ORDER BY created_at DESC LIMIT -1 OFFSET ?;", (keep_last_n,))
+            to_delete = [r["clip_id"] for r in cur.fetchall()]
+            removed = 0
+            for cid in to_delete:
+                if self.delete_clip(cid, remove_file_from_disk=True):
+                    removed += 1
+            return removed
 
 
-# ----------------- FavouritesTable -----------------
-class FavouritesTable(BaseDB):
+# ---------------- NotesTable ----------------
+class NotesTable:
     """
-    Manages favourites table. Assumes clipboard table exists and has clip_id primary key.
+    CRUD and simple search for text_notes table.
     """
 
-    def add_favourite(self, clip_id: str, note: Optional[str] = None) -> int:
-        now = iso_now()
-        cur = self._execute("INSERT INTO favourites (clip_id, added_at, note) VALUES (?, ?, ?);", (clip_id, now, note), commit=True)
-        return cur.lastrowid
-
-    def remove_favourite_by_id(self, fav_id: int) -> bool:
-        cur = self._execute("DELETE FROM favourites WHERE fav_id = ?;", (fav_id,), commit=True)
-        return cur.rowcount > 0
-
-    def remove_favourite_by_clip(self, clip_id: str) -> int:
-        cur = self._execute("DELETE FROM favourites WHERE clip_id = ?;", (clip_id,), commit=True)
-        return cur.rowcount
-
-    def list_favourites(self, limit: int = 100) -> List[Dict[str, Any]]:
-        cur = self._execute("SELECT f.fav_id, f.clip_id, f.added_at, f.note, c.preview_text, c.file_name FROM favourites f LEFT JOIN clipboard c ON c.clip_id = f.clip_id ORDER BY f.added_at DESC LIMIT ?;", (limit,))
-        return [dict(r) for r in cur.fetchall()]
-
-
-# ----------------- NotesTable -----------------
-class NotesTable(BaseDB):
-    """
-    Text notes storage: CRUD and simple search.
-    """
+    def __init__(self, base: BaseDB):
+        self.base = base
+        self._execute = base._execute
+        self.json_dumps = base.json_dumps
+        self.json_loads = base.json_loads
+        self._lock = base._lock
 
     def add_note(self, title: str, main_text: str, tags: Optional[List[str]] = None) -> str:
         note_id = str(uuid.uuid4())
@@ -428,65 +547,50 @@ class NotesTable(BaseDB):
         return [dict(r) for r in cur.fetchall()]
 
 
-# ----------------- Facade: ClipboardStore -----------------
+# ---------------- Facade ----------------
 class ClipboardStore:
     """
-    Facade that composes ClipboardTable, FavouritesTable, and NotesTable.
-    They all share the same sqlite connection and file dirs by design.
+    Facade exposing:
+      - store.clipboard (ClipboardTable on 'clipboard')
+      - store.favourites (ClipboardTable on 'favourites')
+      - store.notes (NotesTable)
+      - convenience move methods: move_to_favourites / move_to_clipboard
     """
 
     def __init__(self, db_path: str, data_dir: str):
-        # Create a single BaseDB instance and share its connection by passing paths to subclasses.
-        # Subclasses instantiate their own BaseDB, which will create a connection to the same file.
-        # For thread-safety and simplicity, user may prefer a single shared BaseDB instance.
-        # Here, to keep classes independent, we create one primary BaseDB and then monkeypatch connections.
         self.base = BaseDB(db_path, data_dir)
-        # create table wrappers that reuse the same sqlite connection & lock
-        self.clipboard = ClipboardTable.__new__(ClipboardTable)
-        self.favourites = FavouritesTable.__new__(FavouritesTable)
-        self.notes = NotesTable.__new__(NotesTable)
+        self.clipboard = ClipboardTable(self.base, BaseDB.CLIP_SCHEMA_NAME)
+        self.favourites = ClipboardTable(self.base, BaseDB.FAVS_SCHEMA_NAME)
+        self.notes = NotesTable(self.base)
 
-        # shallow-copy base attributes into wrappers so they share the same connection and helpers
-        for obj in (self.clipboard, self.favourites, self.notes):
-            # copy relevant attributes from base
-            obj.db_path = self.base.db_path
-            obj.data_dir = self.base.data_dir
-            obj._lock = self.base._lock
-            obj.conn = self.base.conn
-            obj.json_dumps = self.base.json_dumps
-            obj.json_loads = self.base.json_loads
-            obj.sha256 = self.base.sha256
-            obj.generate_image_thumbnail = self.base.generate_image_thumbnail
-            obj.files_dir = self.base.files_dir
-            obj.thumbs_dir = self.base.thumbs_dir
-            obj._path_for_new_file = self.base._path_for_new_file
-            obj._thumb_path_for_new = self.base._thumb_path_for_new
-            # bind execute and rebuild function
-            obj._execute = self.base._execute
-            obj.rebuild_clip_fts = self.base.rebuild_clip_fts
+    def move_to_favourites(self, clip_id: str) -> bool:
+        return self.clipboard.move_row_to(BaseDB.FAVS_SCHEMA_NAME, clip_id)
 
-        # also keep reference for closing
-        self._closed = False
+    def move_to_clipboard(self, clip_id: str) -> bool:
+        return self.favourites.move_row_to(BaseDB.CLIP_SCHEMA_NAME, clip_id)
 
     def close(self):
-        if not self._closed:
-            self.base.close()
-            self._closed = True
+        self.base.close()
 
+
+# ---------------- Usage example (for reference) ----------------
 if __name__ == "__main__":
-    store = ClipboardStore("./clip.db", "./clipstore")
+    # quick demo (not a unit test)
+    store = ClipboardStore("clip_demo.db", "clip_demo_store")
 
-    # add a text clip
-    clip_id = store.clipboard.add_clip(b"hello world", mime="text/plain", preview_text="hello world", source_app="Terminal")
-    print(store.clipboard.get_clip(clip_id))
+    # add an item to clipboard
+    cid = store.clipboard.add_clip(b"Hello world", mime="text/plain", preview_text="Hello world", source_app="Demo")
+    print("added to clipboard:", cid)
 
-    # add favourite
-    fav_id = store.favourites.add_favourite(clip_id, note="useful snippet")
+    # move to favourites
+    moved = store.move_to_favourites(cid)
+    print("moved to favourites:", moved)
 
-    # add note
-    note_id = store.notes.add_note("Meeting notes", "Discussed X, Y, Z", tags=["meeting"])
+    # attempt to get from clipboard (should be None)
+    print("from clipboard:", store.clipboard.get_clip(cid))
 
-    # search clips
-    results = store.clipboard.search("hello")
+    # get from favourites
+    print("from favourites:", store.favourites.get_clip(cid))
 
+    # cleanup
     store.close()

@@ -22,10 +22,10 @@ from resources import *
 from ClipData import ClipData
 
 class ClipboardCard(QFrame):
-    copyRequested = Signal(str)
+    copyRequested = Signal(QMimeData)
     pasteRequested = Signal(QMimeData)
     deleteRequested = Signal(str)
-    favRequested = Signal(str, str)
+    favRequested = Signal(str)
     def __init__(self, id: str, clip_data: ClipData):
         super().__init__()
         self.id = id
@@ -71,10 +71,11 @@ class ClipboardCard(QFrame):
         # self.text_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         # self.text_field.setMaximumHeight(180 - 30)  # allow padding
 
-        self.clip_widget = self.clip_data.widget
+        self.clip_widget = self.clip_data.create_preview_widget(max_height=150)
+        layout.addWidget(self.clip_widget)
+
         # self.text_field.setText(self.text_field.fontMetrics().elidedText(self.text, Qt.ElideRight, 1000))
         # self.text_field.setWordWrap(True)
-        layout.addWidget(self.clip_widget)
 
     def _setup_styles(self): 
         # for button in [self.fav_button, self.copy_button]:
@@ -114,6 +115,7 @@ class ClipboardCard(QFrame):
             }
             QLabel {
                 border: none;
+                color: black; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;
             }
             QLabel:hover {
                 border: none;
@@ -121,15 +123,16 @@ class ClipboardCard(QFrame):
         """)
     
     def _connect_signals(self):
-        # self.copy_button.clicked.connect(lambda checked, t=self.text: self.copy_text(t))
-        # self.fav_button.clicked.connect(lambda checked, id=self.id, t=self.text: self.toggle_favorite(id, t))
-        self.clip_widget.mousePressEvent = lambda event: self.paste_text(event)
+        self.copy_button.clicked.connect(lambda : self.copy_item())
+        self.fav_button.clicked.connect(lambda checked, id=self.id: self.toggle_favorite(id))
+        self.clip_widget.mousePressEvent = lambda event: self.paste_item(event)
 
-    def copy_text(self, text: str):
-        self.copyRequested.emit(text)
+    def copy_item(self):
+        self.copyRequested.emit(self.clip_data.mime_data)
     
-    def toggle_favorite(self,id, text: str):
-        self.favRequested.emit(id, text)
+    def toggle_favorite(self, id):
+        self.favRequested.emit(id)
 
-    def paste_text(self, event):
-        self.pasteRequested.emit(self.clip_data.mime_data)
+    def paste_item(self, event):
+        if event.button() == Qt.LeftButton:
+            self.pasteRequested.emit(self.clip_data.mime_data)

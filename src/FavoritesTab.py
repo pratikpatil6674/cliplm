@@ -17,6 +17,7 @@ from PySide6.QtGui import QIcon
 import sys
 from resources import *
 from FavoriteCard import FavoriteCard
+from ClipData import ClipData
 
 class FavoritesTab(QWidget):
     def __init__(self):
@@ -57,29 +58,25 @@ class FavoritesTab(QWidget):
         self.list_widget.takeItem(self.list_widget.row(self.id_to_list_item[id]))
         del self.id_to_list_item[id]
 
-    def add_list_item(self, id: str, text: str):
+    def add_list_item(self, id: str, clip_data: ClipData):
         list_item = QListWidgetItem()
-        text = str(text) # weird bug : text is sometimes bool
-        list_item_widget = FavoriteCard(id, text)
+        list_item_widget = FavoriteCard(id, clip_data)
         list_item_widget.toggle_delete(self.delete_check.isChecked())
 
-        list_item_widget.copyRequested.connect(lambda text: self.presenter.handle_copy_request(text))
-        list_item_widget.pasteRequested.connect(lambda text: self.presenter.handle_paste_request(text))
+        list_item_widget.copyRequested.connect(lambda mime_data: self.presenter.handle_copy_request(mime_data))
+        list_item_widget.pasteRequested.connect(lambda mime_data: self.presenter.handle_paste_request(mime_data))
         list_item_widget.deleteRequested.connect(lambda id: self.presenter.handle_delete_request(id))
         list_item.setSizeHint(list_item_widget.sizeHint())
         self.list_widget.insertItem(0, list_item)
         self.list_widget.setItemWidget(list_item, list_item_widget)
         self.id_to_list_item[id] = list_item
 
-    def populate_fav_list(self, data):
+    def populate_fav_list(self, favorites_history):
         """Populate a list widget with data."""
         self.list_widget.clear()
-        for index, (id, text) in enumerate(data.items()):
-            self.add_list_item(id, text)
-            # list_item = QListWidgetItem()
-            # text = str(text) # weird bug : text is sometimes bool
-            # list_item_widget = FavoriteCard(id, text)
-            # list_item_widget.toggle_delete(self.delete_check.isChecked())
+        for clip in favorites_history:
+            clip_data = ClipData.from_database(clip)
+            self.add_list_item(clip['clip_id'], clip_data)
 
             # list_item_widget.copyRequested.connect(lambda text: self.presenter.handle_copy_request(text))
             # list_item_widget.pasteRequested.connect(lambda text: self.presenter.handle_paste_request(text))

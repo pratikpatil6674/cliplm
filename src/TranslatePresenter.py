@@ -14,9 +14,9 @@ class TranslatePresenter(QObject):
     
     def translate_text(self, src_text):
         if self.view.is_translate_enabled():
+            print(f"Translate requested for: {src_text}")
             self.translationRequested.emit(src_text)
-            # translated_text = self.translate_service.request_translation_in_process(src_text) 
-            # self.refresh_view(src_text, translated_text)
 
     def refresh_view(self, src_text, translated_text):
+        print(f"Translate view refreshed: {src_text} -> {translated_text}")
         self.view.set_text(src_text, translated_text)

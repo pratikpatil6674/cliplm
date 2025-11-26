@@ -30,6 +30,7 @@ from resources import *
 from ClipboardService import ClipboardService
 from TranslateService import GoogleTranslateService
 from JsonDB import ClipboardDB, FavoritesDB, ManualDB
+from SqlDB import ClipboardStore
 
 from ClipboardTab import ClipboardTab
 from ClipboardPresenter import ClipboardPresenter
@@ -48,6 +49,7 @@ class App(QWidget):
         self.clipboard_service = ClipboardService(self)
         self.translate_service = GoogleTranslateService()
         self.config_dir, self.data_dir, self.cache_dir = self.ensure_app_dirs()
+        self.clipboard_store = ClipboardStore(Path(self.data_dir) / "clipboard.db", self.data_dir)
         self._setup_ui()
         self._set_styles()
 
@@ -65,25 +67,25 @@ class App(QWidget):
         
         self.tabs = QTabWidget()
 
-        self.clipboard_model = ClipboardDB(Path(self.data_dir) / "clipboard.json")
+        self.clipboard_model = self.clipboard_store.clipboard
         self.clipboard_tab = ClipboardTab()
         self.clipboard_presenter = ClipboardPresenter(self.clipboard_service, self.clipboard_model, self.clipboard_tab)
         self.clipboard_tab.presenter = self.clipboard_presenter
         self.tabs.addTab(self.clipboard_tab, "Clipboard")
 
 
-        self.favorites_model = FavoritesDB(Path(self.data_dir) / "favorites.json")
+        self.favorites_model = self.clipboard_store.favourites
         self.favorites_tab = FavoritesTab()
         self.favorites_presenter = FavoritesPresenter(self.clipboard_service, self.favorites_model, self.favorites_tab)
         self.favorites_tab.presenter = self.favorites_presenter
         self.clipboard_tab.favorites_presenter = self.favorites_presenter
         self.tabs.addTab(self.favorites_tab, "Favorites")
 
-        self.manual_model = ManualDB(Path(self.data_dir) / "notes.json")
-        self.manual_tab = ManualTab()
-        self.manual_presenter = ManualPresenter(self.clipboard_service, self.manual_model, self.manual_tab)
-        self.manual_tab.presenter = self.manual_presenter
-        self.tabs.addTab(self.manual_tab, "Notes")
+        # self.manual_model = self.clipboard_store.notes
+        # self.manual_tab = ManualTab()
+        # self.manual_presenter = ManualPresenter(self.clipboard_service, self.manual_model, self.manual_tab)
+        # self.manual_tab.presenter = self.manual_presenter
+        # self.tabs.addTab(self.manual_tab, "Notes")
         
         self.translate_tab = TranslateTab()
         self.translate_presenter = TranslatePresenter(self.translate_service, self.translate_tab)
@@ -93,7 +95,7 @@ class App(QWidget):
         
         self.clipboard_presenter.refresh_view()
         self.favorites_presenter.refresh_view()
-        self.manual_presenter.refresh_view()
+        # self.manual_presenter.refresh_view()
         # Add tabs to main layout
 
         self.layout.addWidget(self.tabs)

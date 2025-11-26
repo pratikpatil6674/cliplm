@@ -3,20 +3,20 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QSizePolicy
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QMimeData
 from functools import partial
 import sys
 from resources import *
 
 class FavoriteCard(QFrame):
-    copyRequested = Signal(str)
-    pasteRequested = Signal(str)
+    copyRequested = Signal(QMimeData)
+    pasteRequested = Signal(QMimeData)
     deleteRequested = Signal(str)
-    def __init__(self, id, text):
+    def __init__(self, id, clip_data):
         super().__init__()
         
-        self.text = text
-        self.entry_id = id
+        self.id = id
+        self.clip_data = clip_data
 
         self._setup_ui()
         self._setup_styles()
@@ -60,15 +60,11 @@ class FavoriteCard(QFrame):
 
         btn_layout.addStretch()
 
-        # Right: Text content
-        self.label = QLabel(self.text)
-        self.label.setWordWrap(True)
-        self.label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.label.setMaximumHeight(180 - 30)  # allow padding
+        self.clip_widget = self.clip_data.create_preview_widget(max_height=150)
 
         # Add both parts to the card layout
         layout.addLayout(btn_layout)
-        layout.addWidget(self.label)
+        layout.addWidget(self.clip_widget)
     
     def _setup_styles(self):
         self.setStyleSheet("""
@@ -90,30 +86,31 @@ class FavoriteCard(QFrame):
             }
             QLabel {
                 border: none;
+                color: black; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;
             }
             QLabel:hover {
                 border: none;
             }
         """)
-        self.label.setStyleSheet(f"color: black; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;")
+        # self.label.setStyleSheet(f"color: black; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;")
     
     def _connect_signals(self) -> None:
         # Use partials or instance methods to avoid late-binding issues in loops
         self.copy_button.clicked.connect(partial(self._on_copy_clicked))
         self.delete_button.clicked.connect(partial(self._on_delete_clicked))
-        self.label.mousePressEvent = lambda event: self._on_label_clicked(event)
+        self.clip_widget.mousePressEvent = lambda event: self._on_label_clicked(event)
 
     # --- private slots ---
     def _on_copy_clicked(self):
-        self.copyRequested.emit(self.text)
+        self.copyRequested.emit(self.clip_data.mime_data)
 
     def _on_delete_clicked(self):
-        self.deleteRequested.emit(self.entry_id)
+        self.deleteRequested.emit(self.id)
 
     def _on_label_clicked(self, event):
         # If you want left click only:
         if event.button() == Qt.LeftButton:
-            self.pasteRequested.emit(self.text)
+            self.pasteRequested.emit(self.clip_data.mime_data)
 
 
 class Demo(QWidget):
