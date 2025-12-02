@@ -23,11 +23,14 @@ from ManualDialog import ManualEntryDialog
 from ManualCard import ManualCard
 from PySide6.QtGui import QColor
 
+from ClipData import ClipData
+
 class ManualTab(QWidget):
     addRequested = Signal()
     def __init__(self):
         super().__init__()
         self.presenter = None
+        self.id_to_list_item = {}
         self._setup_ui()
         self._set_styles()
         self._connect_signals()
@@ -70,23 +73,39 @@ class ManualTab(QWidget):
                 return title, text
         return None, None
     
-    def populate_manual_list(self, data):
+    def delete_list_item(self, id: str):
+        self.list_widget.takeItem(self.list_widget.row(self.id_to_list_item[id]))
+        del self.id_to_list_item[id]
+        
+    def add_list_item(self, id: str, clip_data_top: ClipData, clip_data_bottom: ClipData):
+        if id in self.id_to_list_item:
+            print(f"Updating existing item with id: {id}")
+            list_item = self.id_to_list_item[id]
+        else:
+            list_item = QListWidgetItem()
+            
+        list_item_widget = ManualCard(id, clip_data_top, clip_data_bottom)
+        list_item_widget.toggle_delete(self.delete_check.isChecked())
+        list_item_widget.copyRequested.connect(lambda mime_data: self.presenter.handle_copy_request(mime_data))
+        list_item_widget.pasteRequested.connect(lambda mime_data: self.presenter.handle_paste_request(mime_data))
+        list_item_widget.deleteRequested.connect(lambda id: self.presenter.handle_delete_request(id))
+        list_item_widget.editRequested.connect(lambda id: self.presenter.handle_edit_request(id))
+        list_item.setSizeHint(list_item_widget.sizeHint())
+        if id not in self.id_to_list_item:
+            print(f"Adding new item with id: {id}")
+            self.list_widget.insertItem(0, list_item)
+            self.id_to_list_item[id] = list_item
+        else:
+            print(f"Updated existing item with id: {id}")
+        self.list_widget.setItemWidget(list_item, list_item_widget)
+        
+    def populate_manual_list(self, notes_history):
         """Populate a list widget with data."""
         self.list_widget.clear()
+        self.id_to_list_item.clear()
         self.list_widget.setAlternatingRowColors(False)
-        for index, (manual_entry_id, entry) in enumerate(data.items()):
-            list_item = QListWidgetItem()
-            list_item_widget = ManualCard(entry[0], entry[1], manual_entry_id)
-            list_item_widget.toggle_delete(self.delete_check.isChecked())
-            # list_item_widget = manual_card(entry['title'], entry['text'], self.copy_text, self.paste_text, self.delete_manual_entry, self.add_manual_entry, manual_entry_id)
-            list_item_widget.copyRequested.connect(lambda text: self.presenter.handle_copy_request(text))
-            list_item_widget.pasteRequested.connect(lambda text: self.presenter.handle_paste_request(text))
-            list_item_widget.deleteRequested.connect(lambda id: self.presenter.handle_delete_request(id))
-            list_item_widget.editRequested.connect(lambda id, title, text: self.presenter.handle_edit_request(id, title, text))
-
-            list_item.setSizeHint(list_item_widget.sizeHint())
-            # list_item.mousePressEvent = lambda event, t=entry['text']: self.paste_manual_text(event, t)
-            bg_color = QColor(255, 0, 0) if index % 2 == 0 else QColor(220, 220, 220)
-            list_item.setForeground(bg_color)  # Light gray
-            self.list_widget.addItem(list_item)
-            self.list_widget.setItemWidget(list_item, list_item_widget)
+        for item in notes_history:
+            clip_data_top = ClipData.from_database(item, 'title')
+            clip_data_bottom = ClipData.from_database(item, 'preview_text')
+            self.add_list_item(item['note_id'], clip_data_top, clip_data_bottom)
+            

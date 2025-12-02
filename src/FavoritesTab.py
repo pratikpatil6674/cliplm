@@ -74,6 +74,7 @@ class FavoritesTab(QWidget):
     def populate_fav_list(self, favorites_history):
         """Populate a list widget with data."""
         self.list_widget.clear()
+        self.id_to_list_item.clear()
         for clip in favorites_history:
             clip_data = ClipData.from_database(clip)
             self.add_list_item(clip['clip_id'], clip_data)

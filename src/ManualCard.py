@@ -2,12 +2,14 @@ from pathlib import Path
 from functools import partial
 from typing import Optional
 
+from PyQt5.QtCore import QMimeData
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QVBoxLayout, QToolButton, QLabel, QSizePolicy
 )
 from PySide6.QtGui import QIcon, QFontMetrics
 from PySide6.QtCore import Qt, Signal, QSize
 
+from ClipData import ClipData
 # Example constants (use your resource resolution)
 from resources import *
 
@@ -15,30 +17,23 @@ from resources import *
 class ManualCard(QFrame):
     """
     Card widget representing a manual clipboard entry.
-
-    Signals:
-        copyRequested(str)   - emit the content to copy
-        pasteRequested(str)  - emit the content to paste (or handle externally)
-        deleteRequested(str) - emit the id to delete
-        editRequested(str)   - emit the id to edit
     """
 
-    copyRequested = Signal(str)
-    pasteRequested = Signal(str)
+    copyRequested = Signal(QMimeData)
+    pasteRequested = Signal(QMimeData)
     deleteRequested = Signal(str)
-    editRequested = Signal(str,str,str)
+    editRequested = Signal(str)
 
     def __init__(
         self,
-        top_text: str,
-        bottom_text: str,
-        manual_entry_id: str,
-        parent=None,
+        id: str,
+        clip_data_top: ClipData,
+        clip_data_bottom: ClipData,
     ):
-        super().__init__(parent)
-        self.manual_entry_id = manual_entry_id
-        self.top_text = top_text
-        self.bottom_text = bottom_text
+        super().__init__()
+        self.id = id
+        self.clip_data_top = clip_data_top
+        self.clip_data_bottom = clip_data_bottom
 
         self._setup_ui()
         self._setup_styles()
@@ -85,26 +80,10 @@ class ManualCard(QFrame):
         text_col = QVBoxLayout()
         text_col.setSpacing(4)
 
-        self.top_label = QLabel(self.top_text)
-        self.top_label.setObjectName("manual_card_top")
-        self.top_label.setWordWrap(False)
-        self.top_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.top_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.top_label.setToolTip(self.top_text)
-
-        self.bottom_label = QLabel(self.bottom_text)
-        self.bottom_label.setObjectName("manual_card_bottom")
-        self.bottom_label.setWordWrap(True)
-        self.bottom_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.bottom_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-
-        # ensure descenders not clipped
-        fm = QFontMetrics(self.bottom_label.font())
-        min_h = fm.lineSpacing() + 6
-        self.bottom_label.setMinimumHeight(min_h)
-
-        text_col.addWidget(self.top_label)
-        text_col.addWidget(self.bottom_label)
+        self.title_widget = self.clip_data_top.create_preview_widget(max_height=30)
+        self.desc_widget = self.clip_data_bottom.create_preview_widget(max_height=60)
+        text_col.addWidget(self.title_widget)
+        text_col.addWidget(self.desc_widget)
 
         # edit button on the far right
         self.edit_btn = QToolButton()
@@ -145,6 +124,11 @@ class ManualCard(QFrame):
                 background: rgba(0,0,0,0.04);
                 border-radius: 4px;
             }
+            QLabel {
+                border: none;
+                color: black; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;
+            }
+            
             """
         )
 
@@ -155,8 +139,8 @@ class ManualCard(QFrame):
         self.edit_btn.clicked.connect(partial(self._on_edit_clicked))
 
         # If you want clicking the labels to paste:
-        self.top_label.mousePressEvent = partial(self._on_label_clicked, text=self.top_text)
-        self.bottom_label.mousePressEvent = partial(self._on_label_clicked, text=self.bottom_text)
+        self.title_widget.mousePressEvent = lambda event: self._on_label_clicked(event, self.clip_data_top.mime_data)
+        self.desc_widget.mousePressEvent = lambda event: self._on_label_clicked(event, self.clip_data_bottom.mime_data)
     
     def toggle_delete(self, visible: bool):
         self.delete_btn.setVisible(visible)
@@ -164,18 +148,18 @@ class ManualCard(QFrame):
 
     # --- private slots ---
     def _on_copy_clicked(self):
-        self.copyRequested.emit(self.bottom_text)
+        self.copyRequested.emit(self.desc_widget.mime_data)
 
     def _on_delete_clicked(self):
-        self.deleteRequested.emit(self.manual_entry_id)
+        self.deleteRequested.emit(self.id)
 
     def _on_edit_clicked(self):
-        self.editRequested.emit(self.manual_entry_id, self.top_text, self.bottom_text)
+        self.editRequested.emit(self.id)
 
-    def _on_label_clicked(self, event, text: str):
+    def _on_label_clicked(self, event, mime_data):
         # If you want left click only:
         if event.button() == Qt.LeftButton:
-            self.pasteRequested.emit(text)
+            self.pasteRequested.emit(mime_data)
 
     # Optional: convenience setters
     def update_texts(self, top_text: Optional[str] = None, bottom_text: Optional[str] = None):

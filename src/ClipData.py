@@ -30,7 +30,7 @@ class ClipData:
     - Does NOT create UI widgets by default. Call `create_preview_widget()` to get
       a lightweight preview (QLabel) when running on the GUI thread.
 
-    - Use `to_mime_data()` to obtain a fresh QMimeData ready to set on QApplication.clipboard().
+    - Use `mime_data` property to obtain a fresh QMimeData ready to set on QApplication.clipboard().
     """
 
     def __init__(
@@ -106,10 +106,11 @@ class ClipData:
         return cls(MimeType.URLS, list(urls))
 
     @classmethod
-    def from_database(cls, db_row: dict) -> "ClipData":
+    def from_database(cls, db_row: dict, data_col: str = 'preview_text') -> "ClipData":
         mime_type = db_row.get('content_type')
         if mime_type == MimeType.IMAGE:
-            data = db_row.get('thumbnail')
+            data_col = 'thumbnail'
+            data = db_row.get(data_col)
             try:
                 qimage = ImageUtils.deserialize(data)
                 return cls(MimeType.IMAGE, qimage)
@@ -117,7 +118,7 @@ class ClipData:
                 # If deserialization fails, fall back to raw bytes
                 pass
         if mime_type == MimeType.TEXT or mime_type == MimeType.HTML:
-            data = db_row.get('preview_text')
+            data = db_row.get(data_col)
             if data:
                 return cls(mime_type, data)
         return cls(mime_type, None)

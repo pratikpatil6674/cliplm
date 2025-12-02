@@ -42,6 +42,7 @@ class BaseDB:
 
     CLIP_SCHEMA_NAME = "clipboard"      # canonical name
     FAVS_SCHEMA_NAME = "favourites"     # canonical name
+    NOTES_SCHEMA_NAME = "text_notes"    # canonical name
 
     def __init__(self, db_path: str, data_dir: str, journal_mode: str = "WAL"):
         self.db_path = os.path.abspath(db_path)
@@ -98,6 +99,20 @@ class BaseDB:
             cur.execute(base_table_sql.format(table=self.CLIP_SCHEMA_NAME))
             cur.execute(base_table_sql.format(table=self.FAVS_SCHEMA_NAME))
 
+            notes_table_sql = """
+            CREATE TABLE IF NOT EXISTS {table} (
+                note_id TEXT PRIMARY KEY,
+                content_type TEXT,
+                title TEXT,
+                main_text TEXT,
+                preview_text TEXT,
+                tags TEXT,
+                created_at TEXT,
+                modified_at TEXT
+            );
+            """
+            cur.execute(notes_table_sql.format(table=self.NOTES_SCHEMA_NAME))
+
             # FTS5 table for searching across all buckets (clip_id unique across DB)
             cur.execute("""
             CREATE VIRTUAL TABLE IF NOT EXISTS clip_fts USING fts5(
@@ -111,6 +126,8 @@ class BaseDB:
             cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{self.FAVS_SCHEMA_NAME}_created ON {self.FAVS_SCHEMA_NAME}(created_at);")
             cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{self.CLIP_SCHEMA_NAME}_hash ON {self.CLIP_SCHEMA_NAME}(content_hash);")
             cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{self.FAVS_SCHEMA_NAME}_hash ON {self.FAVS_SCHEMA_NAME}(content_hash);")
+            # cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{self.NOTES_SCHEMA_NAME}_created ON {self.NOTES_SCHEMA_NAME}(created_at);")
+            # cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{self.NOTES_SCHEMA_NAME}_hash ON {self.NOTES_SCHEMA_NAME}(content_hash);")
             self.conn.commit()
 
     # ---------------- File storage helpers ----------------
@@ -508,8 +525,8 @@ class NotesTable:
         now = iso_now()
         preview = (main_text[:512] + "...") if len(main_text) > 512 else main_text
         tags_json = self.json_dumps(tags or [])
-        self._execute("INSERT INTO text_notes (note_id, title, main_text, preview_text, tags, created_at, modified_at) VALUES (?, ?, ?, ?, ?, ?, ?);",
-                      (note_id, title, main_text, preview, tags_json, now, now), commit=True)
+        self._execute("INSERT INTO text_notes (note_id, content_type, title, main_text, preview_text, tags, created_at, modified_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+                      (note_id, 'text', title, main_text, preview, tags_json, now, now), commit=True)
         return note_id
 
     def get_note(self, note_id: str) -> Optional[Dict[str, Any]]:
@@ -531,14 +548,14 @@ class NotesTable:
         now = iso_now()
         self._execute("UPDATE text_notes SET title = ?, main_text = ?, preview_text = ?, tags = ?, modified_at = ? WHERE note_id = ?;",
                       (title, main_text, preview, tags_json, now, note_id), commit=True)
-        return True
+        return self.get_note(note_id)
 
     def delete_note(self, note_id: str) -> bool:
         cur = self._execute("DELETE FROM text_notes WHERE note_id = ?;", (note_id,), commit=True)
         return cur.rowcount > 0
 
     def list_notes(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-        cur = self._execute("SELECT note_id, title, preview_text, created_at, modified_at FROM text_notes ORDER BY modified_at DESC LIMIT ? OFFSET ?;", (limit, offset))
+        cur = self._execute("SELECT note_id, content_type, title, preview_text, created_at, modified_at FROM text_notes ORDER BY modified_at DESC LIMIT ? OFFSET ?;", (limit, offset))
         return [dict(r) for r in cur.fetchall()]
 
     def search_notes(self, query: str, limit: int = 100) -> List[Dict[str, Any]]:

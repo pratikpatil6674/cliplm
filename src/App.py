@@ -81,11 +81,11 @@ class App(QWidget):
         self.clipboard_tab.favorites_presenter = self.favorites_presenter
         self.tabs.addTab(self.favorites_tab, "Favorites")
 
-        # self.manual_model = self.clipboard_store.notes
-        # self.manual_tab = ManualTab()
-        # self.manual_presenter = ManualPresenter(self.clipboard_service, self.manual_model, self.manual_tab)
-        # self.manual_tab.presenter = self.manual_presenter
-        # self.tabs.addTab(self.manual_tab, "Notes")
+        self.manual_model = self.clipboard_store.notes
+        self.manual_tab = ManualTab()
+        self.manual_presenter = ManualPresenter(self.clipboard_service, self.manual_model, self.manual_tab)
+        self.manual_tab.presenter = self.manual_presenter
+        self.tabs.addTab(self.manual_tab, "Notes")
         
         self.translate_tab = TranslateTab()
         self.translate_presenter = TranslatePresenter(self.translate_service, self.translate_tab)
@@ -95,7 +95,7 @@ class App(QWidget):
         
         self.clipboard_presenter.refresh_view()
         self.favorites_presenter.refresh_view()
-        # self.manual_presenter.refresh_view()
+        self.manual_presenter.refresh_view()
         # Add tabs to main layout
 
         self.layout.addWidget(self.tabs)
