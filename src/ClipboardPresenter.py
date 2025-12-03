@@ -17,6 +17,7 @@ class ClipboardPresenter(IClipboardPresenter):
         self.view = view
         self.view.clearRequested.connect(self.clear_clipboard)
         self.translate_presenter = None
+        self.ai_presenter = None
 
     def handle_copy_request(self, qmime_data):
         self.clipboard_service.set_clipboard(qmime_data, trigger_paste=False)
@@ -34,7 +35,11 @@ class ClipboardPresenter(IClipboardPresenter):
             self.translate_presenter.translate_text(text_data)
             print(f"translate triggered for: {text_data}")
             return
-
+        if self.ai_presenter and self.ai_presenter.view.is_ai_enabled():
+            text_data = mime_data.data("text/plain").data().decode('utf-8')
+            self.ai_presenter.process_text(text_data)
+            print(f"AI processing triggered for: {text_data}")
+            return
         clip_data = ClipData.from_qmime(mime_data)
         clip_id = self.model.add_clip(clip_data.bytes_data, clip_data.mime_type)
         # print(f"clipboard change mime data -> data, id: {clip_id}", mime_data.formats(), mime_data.data("text/plain"))

@@ -41,6 +41,10 @@ from ManualTab import ManualTab
 from ManualPresenter import ManualPresenter
 from TranslateTab import TranslateTab
 from TranslatePresenter import TranslatePresenter
+from AITab import AITab
+from AIPresenter import AIPresenter
+from PromptsStore import PromptsStore
+from AIService import LLMService
 class App(QWidget):
     
     def __init__(self):
@@ -49,6 +53,9 @@ class App(QWidget):
         self.translate_service = GoogleTranslateService()
         self.config_dir, self.data_dir, self.cache_dir = self.ensure_app_dirs()
         self.clipboard_store = ClipboardStore(Path(self.data_dir) / "clipboard.db", self.data_dir)
+
+        self.ai_service = LLMService()
+        self.prompts_store = PromptsStore(Path(self.config_dir) / "prompts.toml")
         self._setup_ui()
         self._set_styles()
 
@@ -97,6 +104,11 @@ class App(QWidget):
         self.manual_presenter.refresh_view()
         # Add tabs to main layout
 
+        self.ai_tab = AITab(self.prompts_store)
+        self.ai_presenter = AIPresenter(self.ai_service, self.ai_tab)
+        self.clipboard_presenter.ai_presenter = self.ai_presenter
+        self.tabs.addTab(self.ai_tab, "AI")
+        
         self.layout.addWidget(self.tabs)
 
         self.setLayout(self.layout)
@@ -120,43 +132,29 @@ class App(QWidget):
     
 
     def ensure_app_dirs(self):
-        # set app identity
-        QCoreApplication.setOrganizationName("MyCompany")
-        QCoreApplication.setApplicationName("MyClipboard")
+        APP_NAME = "NeuroClip"
+        QCoreApplication.setOrganizationName(APP_NAME)
+        QCoreApplication.setApplicationName(APP_NAME)
 
-        # Config: per-user config files (XDG_CONFIG_HOME or ~/.config)
         config_dir = QStandardPaths.writableLocation(QStandardPaths.ConfigLocation)
-        
-        # App-scoped data: per-user persistent data (XDG_DATA_HOME or ~/.local/share)
+        config_dir = f"{config_dir}/{APP_NAME}"
         data_dir = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
-
-        # Cache
         cache_dir = QStandardPaths.writableLocation(QStandardPaths.CacheLocation)
 
-        # QDir.mkpath creates parents if necessary, returns True on success
         QDir().mkpath(config_dir)
         QDir().mkpath(data_dir)
         QDir().mkpath(cache_dir)
 
-        print(config_dir, data_dir, cache_dir)
-        print(data_dir)
+        print(f"Config: {config_dir}, Data: {data_dir}, Cache: {cache_dir}")
         return config_dir, data_dir, cache_dir
     
     def center_on_screen(self):
-        # A. Get the available screen geometry
-        # QGuiApplication.primaryScreen() gets the main screen object
+        # Get the main screen's available geometry
         screen = QApplication.primaryScreen().availableGeometry()
-        
-        # B. Get the current geometry of the window
         window_geometry = self.geometry()
         
-        # C. Calculate the new center point (x, y)
-        
-        # x-coordinate calculation: (Screen Width - Window Width) / 2
+        # Calculate the new center point (x, y) to center the window on screen
         x = (screen.width() - window_geometry.width()) // 2
-        
-        # y-coordinate calculation: (Screen Height - Window Height) / 2
         y = (screen.height() - window_geometry.height()) // 2
         
-        # D. Move the window to the calculated position
         self.move(x, y)

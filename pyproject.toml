@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "googletrans>=4.0.2",
+    "openai>=2.8.1",
     "pyautogui>=0.9.54",
     "pyinstaller>=6.16.0",
     "pynput>=1.8.1",
