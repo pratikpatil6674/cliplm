@@ -2,7 +2,7 @@ from pathlib import Path
 from functools import partial
 from typing import Optional
 
-from PyQt5.QtCore import QMimeData
+from PySide6.QtCore import QMimeData
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QVBoxLayout, QToolButton, QLabel, QSizePolicy
 )

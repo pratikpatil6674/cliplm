@@ -37,8 +37,8 @@ class ClipboardService(QObject):
         
         if trigger_paste:
             QTimer.singleShot(10, self.app.hide)
-            QTimer.singleShot(10, self.simulate_paste_event)
-            QTimer.singleShot(100, self.app.show) 
+            QTimer.singleShot(100, self.simulate_paste_event)
+            QTimer.singleShot(100, self.app.show)
     
 
     def on_clipboard_change(self):
