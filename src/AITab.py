@@ -21,6 +21,7 @@ from pathlib import Path
 from resources import *
 from FavoriteCard import FavoriteCard
 from PromptsStore import PromptsStore
+from PlaceHolder import Placeholder
 
 class AITab(QWidget):
     def __init__(self, prompt_store: PromptsStore | None = None):
@@ -60,13 +61,17 @@ class AITab(QWidget):
 
         # Input prompt
         self.ai_input_prompt = QTextEdit()
-        self.ai_input_prompt.setFixedHeight(100)
+        self.ai_input_prompt.setFixedHeight(50)
         self.layout.addWidget(self.ai_input_prompt)
         
         # Input data text or image
-        self.input_data_label = QTextEdit()
-        self.input_data_label.setFixedHeight(100)
-        self.layout.addWidget(self.input_data_label)
+        self.input_data_placeholder = Placeholder(self)
+        # self.input_data_placeholder.setMaxHeight(100)
+        # self.layout.addWidget(self.input_data_placeholder)
+        scroll1 = QScrollArea()
+        scroll1.setWidgetResizable(True)
+        scroll1.setWidget(self.input_data_placeholder)
+        self.layout.addWidget(scroll1)
         
         # AI text output
         self.ai_output_text = QLabel("AI Output")
@@ -75,10 +80,10 @@ class AITab(QWidget):
         self.ai_output_text.setWordWrap(True)
         self.ai_output_text.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(self.ai_output_text)
-        self.layout.addWidget(scroll)
+        scroll2 = QScrollArea()
+        scroll2.setWidgetResizable(True)
+        scroll2.setWidget(self.ai_output_text)
+        self.layout.addWidget(scroll2)
         
         self.setLayout(self.layout)
     
@@ -88,9 +93,9 @@ class AITab(QWidget):
             self.prompt_store.load_prompts()
     
     def _setup_styles(self):
-        self.ai_input_prompt.setStyleSheet("background-color: #ffffff; color: #000000; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 10px; margin: 10px;") 
-        self.input_data_label.setStyleSheet("background-color: #ffffff; color: #000000; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 10px; margin: 10px; border: 1px solid #ccc;") 
-        self.ai_output_text.setStyleSheet("background-color: #ffffff; color: #000000; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 10px; margin: 10px; border: 1px solid #ccc;") 
+        self.ai_input_prompt.setStyleSheet("background-color: #ffffff; color: #000000; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 10px; margin: 0px;") 
+        self.input_data_placeholder.setStyleSheet("background-color: #ffffff; color: #000000; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; border: 1px solid #ccc;") 
+        self.ai_output_text.setStyleSheet("background-color: #ffffff; color: #000000; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 10px; margin: 0px; border: 1px solid #ccc;") 
 
     def is_ai_enabled(self):
         return self.ai_checkbox.isChecked()
@@ -102,8 +107,8 @@ class AITab(QWidget):
     def set_prompt(self, prompt):
         self.ai_input_prompt.setText(prompt)
     
-    def set_input_data(self, input_data):
-        self.input_data_label.setText(input_data)
+    def set_input_data(self, input_data_widget):
+        self.input_data_placeholder.set_widget(input_data_widget)
     
     def set_ai_output(self, ai_output_text):
         self.ai_output_text.setText(ai_output_text)

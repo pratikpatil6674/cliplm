@@ -1,17 +1,14 @@
 from openai import AsyncOpenAI
-
 from qasync import asyncSlot
-GEMINI_API_KEY = ""
+from PySide6.QtCore import QObject, Signal
 
+GEMINI_API_KEY = ""
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 MODEL_NAME = "gemini-2.5-flash" 
 
-
-from PySide6.QtCore import QObject, Signal
-
 class LLMService(QObject):
+
     aiCompleted = Signal(str, str)
-    
     def __init__(self):
         super().__init__()
         self.client = AsyncOpenAI(
@@ -22,6 +19,7 @@ class LLMService(QObject):
     
     @asyncSlot(str, str)
     async def send_text_prompt(self, prompt, text):
+        print(f"Sending text prompt: {prompt}, input: {text}")
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": f"{prompt}\n\n{text}"}]
@@ -33,7 +31,7 @@ class LLMService(QObject):
         self.aiCompleted.emit(prompt, res)
     
     @asyncSlot(str, str)
-    async def send_image_prompt(self, prompt, image_data):
+    async def send_image_prompt(self, prompt, image_data: str):
         messages = [
             {
                 "role": "user",
@@ -57,4 +55,3 @@ class LLMService(QObject):
         res = response.choices[0].message.content
         print(f"AI Image Response: {res}")
         self.aiCompleted.emit(prompt, res)
-

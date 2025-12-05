@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional, List, Callable, Any, Dict
 from PySide6.QtCore import QMimeData, QUrl, Qt
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
+from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget, QTextEdit
 import base64
 import io
 
@@ -40,7 +40,7 @@ class ClipData:
         subtype: Optional[str] = None,
     ):
         self.mime_type = mime_type
-        self.data = data
+        self.data = data    # str, QImage, List[QUrl], or bytes
         # optional subtype for OTHER, or for more precise content-type
         self.subtype = subtype
         # cached preview widget (created on demand, must be created on GUI thread)
@@ -57,22 +57,31 @@ class ClipData:
             img = qmime.imageData()
             # ensure canonical QImage
             qimg = QImage(img) if isinstance(img, QImage) else QPixmap(img).toImage()
-            return cls(MimeType.IMAGE, qimg)
+            obj = cls(MimeType.IMAGE, qimg)
 
+            obj.bytes_data = ImageUtils.serialize(qimg, "PNG")
+            obj.image_b64 = base64.b64encode(obj.bytes_data).decode("utf-8")
+            return obj
         # Text (plain)
         if qmime.hasText():
             txt = qmime.text()
-            return cls(MimeType.TEXT, str(txt))
+            obj = cls(MimeType.TEXT, str(txt))
+            obj.bytes_data = txt.encode("utf-8") if isinstance(txt, str) else bytes(txt)
+            return obj
 
         # HTML
         if qmime.hasHtml():
             html = qmime.html()
-            return cls(MimeType.HTML, str(html))
+            obj = cls(MimeType.HTML, str(html))
+            obj.bytes_data = html.encode("utf-8") if isinstance(html, str) else bytes(html)
+            return obj
 
         # URLs (file lists)
         if qmime.hasUrls():
             urls = list(qmime.urls())  # list of QUrl
-            return cls(MimeType.URLS, urls)
+            obj = cls(MimeType.URLS, urls)
+            obj.bytes_data = str(urls).encode("utf-8")
+            return obj
 
         # Fallback: preserve raw bytes for a specific subtype if available
         # Attempt to pick the first available format
@@ -85,7 +94,9 @@ class ClipData:
             except Exception:
                 # last-resort: empty
                 raw = b""
-            return cls(MimeType.OTHER, bytes(raw), subtype=fmt)
+            obj = cls(MimeType.OTHER, bytes(raw), subtype=fmt)
+            obj.bytes_data = raw
+            return obj
 
         return None
 
@@ -124,6 +135,12 @@ class ClipData:
         return cls(mime_type, None)
     
 
+    def is_text_like(self) -> bool:
+        return self.mime_type in (MimeType.TEXT, MimeType.HTML)
+    
+    def is_image_like(self) -> bool:
+        return self.mime_type == MimeType.IMAGE
+    
     # ---------------------------
     # preview widget creation (GUI-thread)
     # ---------------------------
@@ -151,7 +168,7 @@ class ClipData:
             return lbl
 
         # TEXT / HTML / URLS / OTHER -> textual preview
-        lbl = QLabel()
+        lbl = QLabel("temp")
         if self.mime_type == MimeType.HTML:
             lbl.setText(self.data)
             lbl.setTextFormat(Qt.RichText)
@@ -171,8 +188,8 @@ class ClipData:
             lbl.setTextFormat(Qt.PlainText)
 
         lbl.setWordWrap(True)
-        lbl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        lbl.setMaximumHeight(max_height)
+        # lbl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # lbl.setMaximumHeight(max_height)
         self._preview = lbl
         return lbl
 
@@ -215,17 +232,19 @@ class ClipData:
             md.setData("application/octet-stream", self.data if isinstance(self.data, (bytes, bytearray)) else bytes(str(self.data), "utf-8"))
         return md
 
-    @property
-    def bytes_data(self) -> bytes:
-        if self.mime_type == MimeType.IMAGE:
-            # For images, convert QImage to bytes
-            return ImageUtils.serialize(self.data, "PNG")
-        if self.mime_type == MimeType.TEXT or self.mime_type == MimeType.HTML:
-            return self.data.encode("utf-8") if isinstance(self.data, str) else bytes(self.data)
-        if self.mime_type == MimeType.URLS:
-            return "\n".join([url.toString() for url in self.data]).encode("utf-8")
-        """Return the raw bytes data."""
-        return self.data if isinstance(self.data, (bytes, bytearray)) else bytes(str(self.data), "utf-8")
+    # @property
+    # def bytes_data(self) -> bytes:
+    #     if self.mime_type == MimeType.IMAGE:
+    #         # For images, convert QImage to bytes
+    #         bytes_data = ImageUtils.serialize(self.data, "PNG")
+    #         image_b64 = base64.b64encode(bytes_data).decode("utf-8")
+    #         return bytes_data
+    #     if self.mime_type == MimeType.TEXT or self.mime_type == MimeType.HTML:
+    #         return self.data.encode("utf-8") if isinstance(self.data, str) else bytes(self.data)
+    #     if self.mime_type == MimeType.URLS:
+    #         return "\n".join([url.toString() for url in self.data]).encode("utf-8")
+    #     """Return the raw bytes data."""
+    #     return self.data if isinstance(self.data, (bytes, bytearray)) else bytes(str(self.data), "utf-8")
     # ---------------------------
     # utilities
     # ---------------------------

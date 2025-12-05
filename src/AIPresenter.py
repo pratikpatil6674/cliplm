@@ -1,24 +1,37 @@
-import asyncio
-from PySide6.QtCore import QThreadPool
+
 from PySide6.QtCore import QObject
 from PySide6.QtCore import Signal
 
 class AIPresenter(QObject):
-    aiRequested = Signal(str, str)
+    textPromptRequested = Signal(str, str)
+    imagePromptRequested = Signal(str, str)
     def __init__(self, ai_service, view):
         super().__init__()
         self.ai_service = ai_service
         self.ai_service.aiCompleted.connect(self.refresh_view)
-        self.aiRequested.connect(self.ai_service.send_text_prompt)
+        self.textPromptRequested.connect(self.ai_service.send_text_prompt)
+        self.imagePromptRequested.connect(self.ai_service.send_image_prompt)
         self.view = view
     
-    def process_text(self, data_text):
-        if self.view.is_ai_enabled():
-            prompt_text = self.view.get_selected_prompt()
-            self.view.set_prompt(prompt_text)
-            self.view.set_input_data(data_text)
-            print(f"AI processing requested for: {data_text}")
-            self.aiRequested.emit(prompt_text, data_text)
+    def handle_clipdata(self, clip_data):
+        if not self.view.is_ai_enabled():
+            return
+        prompt_text = self.view.get_selected_prompt()
+        self.set_input_view(prompt_text,clip_data)
+        self.view.set_ai_output("Waiting for response...")
+        if clip_data.is_text_like():
+            self.textPromptRequested.emit(prompt_text, clip_data.data)
+        elif clip_data.is_image_like():
+            self.imagePromptRequested.emit(prompt_text, clip_data.image_b64)
+    
+    def set_input_view(self, prompt_text, clip_data):
+        self.view.set_prompt(prompt_text)
+        preview_widget = clip_data.create_preview_widget()
+        print(f"Preview widget: {preview_widget}, data is {clip_data.data}")
+        if preview_widget:
+            self.view.set_input_data(preview_widget)
+        else:
+            print(f"No preview widget available for clip data: {clip_data.mime_type}")
 
     def refresh_view(self, prompt, ai_result):
         print(f"AI view refreshed: {prompt} -> {ai_result}")

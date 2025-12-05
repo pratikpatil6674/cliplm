@@ -30,17 +30,17 @@ class ClipboardPresenter(IClipboardPresenter):
         self.view.delete_list_item(id)
 
     def handle_clipboard_change(self, mime_data):
+        clip_data = ClipData.from_qmime(mime_data)
         if self.translate_presenter and self.translate_presenter.view.is_translate_enabled():
-            text_data = mime_data.data("text/plain").data().decode('utf-8')
+            text_data = clip_data.data
             self.translate_presenter.translate_text(text_data)
             print(f"translate triggered for: {text_data}")
             return
+    
         if self.ai_presenter and self.ai_presenter.view.is_ai_enabled():
-            text_data = mime_data.data("text/plain").data().decode('utf-8')
-            self.ai_presenter.process_text(text_data)
-            print(f"AI processing triggered for: {text_data}")
+            self.ai_presenter.handle_clipdata(clip_data)
             return
-        clip_data = ClipData.from_qmime(mime_data)
+            
         clip_id = self.model.add_clip(clip_data.bytes_data, clip_data.mime_type)
         # print(f"clipboard change mime data -> data, id: {clip_id}", mime_data.formats(), mime_data.data("text/plain"))
         if clip_data.mime_type:
