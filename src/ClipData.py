@@ -188,8 +188,10 @@ class ClipData:
             lbl.setTextFormat(Qt.PlainText)
 
         lbl.setWordWrap(True)
-        # lbl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        # lbl.setMaximumHeight(max_height)
+        lbl.setTextFormat(Qt.PlainText)
+        lbl.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        lbl.setWordWrap(True)
+        lbl.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
         self._preview = lbl
         return lbl
 

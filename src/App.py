@@ -56,12 +56,13 @@ class App(QWidget):
 
         self.ai_service = LLMService()
         self.prompts_store = PromptsStore(Path(self.config_dir) / "prompts.toml")
+        qt_material.apply_stylesheet(self, theme='light_blue.xml')
         self._setup_ui()
         self._set_styles()
 
     
     def _setup_ui(self):
-        self.setWindowTitle("Clipboard Manager")
+        self.setWindowTitle("NeuroClip")
         self.setGeometry(100, 100, 600, 500)
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
         self.window_radius = 12
@@ -116,8 +117,11 @@ class App(QWidget):
         # self.translate_presenter.translate_text("Hello")
 
     def _set_styles(self):
-        self.setStyleSheet(f"background-color: #F9FBFD; ")
-        qt_material.apply_stylesheet(self, theme='light_blue.xml')
+        self.setStyleSheet(self.styleSheet() + """
+            QWidget {
+                background-color: #f5f7fb;
+            }
+        """)
         self.tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: none;
@@ -127,7 +131,6 @@ class App(QWidget):
             QTabBar::tab { 
                 text-transform: none; 
                 font-size: 15px; font-family: Ubuntu, sans-serif;
-            }
         """)
     
 

@@ -44,8 +44,10 @@ class FavoritesTab(QWidget):
         self.list_widget.setAlternatingRowColors(False)
 
     def _set_styles(self):
+
+        self.setStyleSheet(f"background: #F5F7FB;")
         self.list_widget.setStyleSheet(
-            f"font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;"
+            f"font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: #F5F7FB;"
         )
 
     def set_delete_btn_visibility(self, list_widget: QListWidget):
@@ -79,10 +81,3 @@ class FavoritesTab(QWidget):
             clip_data = ClipData.from_database(clip)
             self.add_list_item(clip['clip_id'], clip_data)
 
-            # list_item_widget.copyRequested.connect(lambda text: self.presenter.handle_copy_request(text))
-            # list_item_widget.pasteRequested.connect(lambda text: self.presenter.handle_paste_request(text))
-            # list_item_widget.deleteRequested.connect(lambda id: self.presenter.handle_delete_request(id))
-            # list_item.setSizeHint(list_item_widget.sizeHint())
-            # self.list_widget.addItem(list_item)
-            # self.list_widget.setItemWidget(list_item, list_item_widget)
-            # self.id_to_list_item[id] = list_item

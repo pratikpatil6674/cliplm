@@ -69,12 +69,12 @@ class FavoriteCard(QFrame):
     def _setup_styles(self):
         self.setStyleSheet("""
             QFrame {
-                border: 1px solid #ccc;
+                border: 1px solid rgba(30,36,44,0.06);
                 background-color: #ffffff;
                 border-radius: 10px;
             }
             QFrame:hover {
-                border: 2px solid #2979ff;
+                border: 2px solid rgba(41,121,255,0.3);
             }
             QPushButton {
                 background-color: transparent;

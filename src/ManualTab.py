@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
     QDialog,
     QCheckBox,
     QScrollArea,
+    QFrame,
+    QSizePolicy
 )
 from PySide6.QtGui import QIcon
 import sys
@@ -37,20 +39,28 @@ class ManualTab(QWidget):
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
-        self.list_widget = QListWidget()
-        self.add_button = QPushButton("Add note")
-        self.delete_check = QCheckBox("Delete?")
-        self.delete_check.setChecked(False)
-
-        self.layout.addWidget(self.delete_check)
-        self.layout.addWidget(self.list_widget)
-        self.layout.addWidget(self.add_button)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+        
+        self.delete_check = QCheckBox("Delete?")
+        self.delete_check.setChecked(False)
+        self.add_button = QPushButton("Add note")
+        self.add_button.setFixedSize(120, 50)
+        self.list_widget = QListWidget()
+
+        top_row_layout = QHBoxLayout()
+        top_row_layout.setContentsMargins(0, 0, 0, 0)
+        top_row_layout.addWidget(self.add_button)
+        top_row_layout.addWidget(self.delete_check)
+        top_row_layout.addStretch()
+
+        self.layout.addLayout(top_row_layout)
+        self.layout.addWidget(self.list_widget)
 
     def _set_styles(self):
-        self.add_button.setStyleSheet(f" color: white; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 10px; background-color: #1A73E8;")
-        self.list_widget.setStyleSheet(f"font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;")
+        self.setStyleSheet(f"background: #F5F7FB; ")
+        self.add_button.setStyleSheet(f" color: white; font-size: 15px; font-family: Ubuntu, sans-serif; text-transform: none; padding: 0px; margin: 10px; background-color: #1A73E8;")
+        self.list_widget.setStyleSheet(f"font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: #F5F7FB;")
 
     def set_delete_btn_visibility(self, state, list_widget: QListWidget):
         for i in range(list_widget.count()):
