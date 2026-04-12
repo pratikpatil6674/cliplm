@@ -1,22 +1,39 @@
-import asyncio
-from PySide6.QtCore import QThreadPool
-from PySide6.QtCore import QObject
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QObject, Signal
+
 
 class TranslatePresenter(QObject):
-    translationRequested = Signal(str)
+    translationRequested = Signal(str, str, str)
+
     def __init__(self, translate_service, view):
         super().__init__()
         self.translate_service = translate_service
         self.translate_service.translationCompleted.connect(self.refresh_view)
         self.translationRequested.connect(self.translate_service.translate_text)
         self.view = view
-    
-    def translate_text(self, src_text):
-        if self.view.is_translate_enabled():
-            print(f"Translate requested for: {src_text}")
-            self.translationRequested.emit(src_text)
+        self.view.translateRequested.connect(self.handle_translate_request)
+        self.last_input_text = ""
+        self._load_languages()
+
+    def _load_languages(self):
+        source_languages = self.translate_service.get_source_languages()
+        destination_languages = self.translate_service.get_destination_languages()
+        self.view.set_language_options(source_languages, destination_languages)
+
+    def update_input_text(self, src_text):
+        self.last_input_text = src_text or ""
+        self.view.set_input_text(self.last_input_text)
+
+    def handle_translate_request(self):
+        src_text = self.last_input_text.strip()
+        if not src_text:
+            self.view.set_translated_text("Copy text first.")
+            return
+
+        source_language = self.view.get_source_language()
+        destination_language = self.view.get_destination_language()
+        self.view.set_translated_text("Translating...")
+        self.translationRequested.emit(src_text, source_language, destination_language)
 
     def refresh_view(self, src_text, translated_text):
-        print(f"Translate view refreshed: {src_text} -> {translated_text}")
+        self.last_input_text = src_text
         self.view.set_text(src_text, translated_text)
