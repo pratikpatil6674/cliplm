@@ -14,7 +14,8 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QScrollArea,
     QFrame,
-    QSizePolicy
+    QSizePolicy,
+    QAbstractItemView
 )
 from PySide6.QtGui import QIcon
 import sys
@@ -44,8 +45,8 @@ class ManualTab(QWidget):
         
         self.delete_check = QCheckBox("Delete?")
         self.delete_check.setChecked(False)
-        self.add_button = QPushButton("Add note")
-        self.add_button.setFixedSize(120, 50)
+        self.add_button = QPushButton("+ New note")
+        self.add_button.setFixedSize(100, 40)
         self.list_widget = QListWidget()
 
         top_row_layout = QHBoxLayout()
@@ -55,12 +56,37 @@ class ManualTab(QWidget):
         top_row_layout.addStretch()
 
         self.layout.addLayout(top_row_layout)
+        self.list_widget.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.list_widget.setResizeMode(QListWidget.Adjust)
         self.layout.addWidget(self.list_widget)
 
     def _set_styles(self):
         self.setStyleSheet(f"background: #F5F7FB; ")
-        self.add_button.setStyleSheet(f" color: white; font-size: 15px; font-family: Ubuntu, sans-serif; text-transform: none; padding: 0px; margin: 10px; background-color: #1A73E8;")
-        self.list_widget.setStyleSheet(f"font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: #F5F7FB;")
+        self.add_button.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #3a7ef7, stop:1 #2c62d6);
+                color: #fff;
+                border: none;
+                margin: 5px;
+                padding: 6px 12px;
+                border-radius: 8px;
+                min-width: 80px;
+                text-transform: none; 
+                font-size: 15px;
+                font-family: Ubuntu, sans-serif;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #4b88fb, stop:1 #3871e0);
+            }
+        """)
+        self.list_widget.setStyleSheet("""
+            padding: 0px; 
+            margin: 0px; 
+            background-color: #F5F7FB;
+            font-size: 15px; 
+            font-family: Ubuntu, sans-serif; 
+        """)
 
     def set_delete_btn_visibility(self, state, list_widget: QListWidget):
         for i in range(list_widget.count()):
@@ -115,7 +141,7 @@ class ManualTab(QWidget):
         self.id_to_list_item.clear()
         self.list_widget.setAlternatingRowColors(False)
         for item in notes_history:
-            clip_data_top = ClipData.from_database(item, 'title')
-            clip_data_bottom = ClipData.from_database(item, 'preview_text')
+            clip_data_top = ClipData.from_database(item, data_key='title')
+            clip_data_bottom = ClipData.from_database(item, data_key='preview_text')
             self.add_list_item(item['note_id'], clip_data_top, clip_data_bottom)
             

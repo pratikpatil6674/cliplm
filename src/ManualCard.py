@@ -23,7 +23,8 @@ class ManualCard(QFrame):
     pasteRequested = Signal(QMimeData)
     deleteRequested = Signal(str)
     editRequested = Signal(str)
-
+    MAX_CARD_HEIGHT = 180
+    
     def __init__(
         self,
         id: str,
@@ -39,20 +40,25 @@ class ManualCard(QFrame):
         self._setup_styles()
         self._connect_signals()
 
+    def sizeHint(self):
+        hint = super().sizeHint()
+        hint.setHeight(min(hint.height(), self.MAX_CARD_HEIGHT))
+        return hint
+
     def _setup_ui(self) -> None:
         self.setObjectName("manual_card")
         self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
+        # layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(12)
 
         # Left icon column (vertical)
         icon_col = QVBoxLayout()
-        icon_col.setSpacing(8)
+        # icon_col.setSpacing(8)
         icon_col.addStretch()
 
-        icon_size = QSize(20, 20)  # design-scale icon size
+        icon_size = QSize(18, 18)  # design-scale icon size
 
         self.copy_btn = QToolButton()
         self.copy_btn.setIcon(COPY_ICON)
@@ -81,7 +87,9 @@ class ManualCard(QFrame):
         text_col.setSpacing(4)
 
         self.title_widget = self.clip_data_top.create_preview_widget(max_height=30)
+        self.title_widget.setObjectName("manual_card_top")
         self.desc_widget = self.clip_data_bottom.create_preview_widget(max_height=60)
+        self.desc_widget.setObjectName("manual_card_bottom")
         text_col.addWidget(self.title_widget)
         text_col.addWidget(self.desc_widget)
 
@@ -97,20 +105,21 @@ class ManualCard(QFrame):
         layout.addWidget(self.edit_btn, alignment=Qt.AlignTop)
 
     def _setup_styles(self) -> None:
-        # Small, local stylesheet. Prefer app-wide QSS for bigger projects.
         self.setStyleSheet(
             """
             QFrame#manual_card {
-                background: #ffffff;
+                border: 1px solid #ccc;
+                background-color: #ffffff;
                 border-radius: 10px;
-                border: 1px solid #e0e0e0;
+                padding: 5px;
+                padding-bottom: 10px;
             }
             QFrame#manual_card:hover {
-                border: 1px solid #2979ff;
+                border: 2px solid #2979ff;
             }
             QLabel#manual_card_top {
                 color: #7a7a7a;
-                font-size: 12px;
+                font-size: 10px;
             }
             QLabel#manual_card_bottom {
                 color: #111111;
@@ -126,7 +135,12 @@ class ManualCard(QFrame):
             }
             QLabel {
                 border: none;
-                color: black; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;
+                color: black;
+                font-size: 15px;
+                font-family: Ubuntu, sans-serif;
+                padding: 0px;
+                margin: 0px;
+                background-color: transparent;
             }
             
             """
@@ -146,9 +160,8 @@ class ManualCard(QFrame):
         self.delete_btn.setVisible(visible)
         self.delete_button_placeholder.setVisible(not visible)
 
-    # --- private slots ---
     def _on_copy_clicked(self):
-        self.copyRequested.emit(self.desc_widget.mime_data)
+        self.copyRequested.emit(self.clip_data_bottom.mime_data)
 
     def _on_delete_clicked(self):
         self.deleteRequested.emit(self.id)
@@ -157,11 +170,9 @@ class ManualCard(QFrame):
         self.editRequested.emit(self.id)
 
     def _on_label_clicked(self, event, mime_data):
-        # If you want left click only:
         if event.button() == Qt.LeftButton:
             self.pasteRequested.emit(mime_data)
 
-    # Optional: convenience setters
     def update_texts(self, top_text: Optional[str] = None, bottom_text: Optional[str] = None):
         if top_text is not None:
             self.top_text = top_text

@@ -166,31 +166,36 @@ class ManualEntryDialog(QDialog):
         """)
         self.ok_button.setStyleSheet("""
             QPushButton {
-                background-color: #1A73E8;
-                color: white;
-                border-radius: 4px;
+                background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #3a7ef7, stop:1 #2c62d6);
+                color: #fff;
+                border: none;
                 padding: 6px 12px;
+                border-radius: 8px;
                 min-width: 80px;
                 text-transform: none; 
-                font-size: 15px; font-family: Ubuntu, sans-serif;
+                font-size: 15px;
+                font-family: Ubuntu, sans-serif;
+                font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #2B7DE9;
+                background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #4b88fb, stop:1 #3871e0);
             }
         """)
         self.cancel_button.setStyleSheet("""
             QPushButton {
-                background-color: #ffffff;
-                color: #2979ff;
-                border-radius: 4px;
+                background: #ffffff;
+                color: #2c62d6;
+                border: 1px solid rgba(44,98,214,0.18);
                 padding: 6px 12px;
+                border-radius: 8px;
                 min-width: 80px;
-                border: 1px solid #ccc;
                 text-transform: none; 
-                font-size: 15px; font-family: Ubuntu, sans-serif;
+                font-size: 15px;
+                font-family: Ubuntu, sans-serif;
+                font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #F8FBFF;
+                background: #f0f5ff;
             }
         """)
         

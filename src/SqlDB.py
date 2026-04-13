@@ -10,7 +10,6 @@ Behavior:
   and preserves on-disk files (no deletion).
 - Use a single shared sqlite connection across table objects.
 
-Optional dependency: Pillow (for thumbnail generation). If not available thumbnail generation is skipped.
 """
 
 from __future__ import annotations
@@ -22,14 +21,10 @@ import json
 import threading
 import datetime
 from typing import Optional, List, Dict, Any, Tuple
+import logging
 
-# Optional Pillow for thumbnails
-try:
-    from PIL import Image
-    PIL_AVAILABLE = True
-except Exception:
-    PIL_AVAILABLE = False
-
+from ClipData import MimeType
+logger = logging.getLogger(__name__)
 
 def iso_now() -> str:
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
@@ -186,19 +181,6 @@ class BaseDB:
         except Exception:
             return []
 
-    def generate_image_thumbnail(self, content_bytes: bytes, max_size: Tuple[int, int] = (256, 256)) -> Optional[bytes]:
-        if not PIL_AVAILABLE:
-            return None
-        try:
-            from io import BytesIO
-            im = Image.open(BytesIO(content_bytes))
-            im.thumbnail(max_size)
-            out = BytesIO()
-            im.save(out, format="JPEG", quality=75)
-            return out.getvalue()
-        except Exception:
-            return None
-
     def rebuild_clip_fts(self):
         """
         Rebuild clip_fts from both tables.
@@ -239,7 +221,6 @@ class ClipboardTable:
         self.sha256 = base.sha256
         self.json_dumps = base.json_dumps
         self.json_loads = base.json_loads
-        self.generate_image_thumbnail = base.generate_image_thumbnail
         self._path_for_new_file = base._path_for_new_file
         self.rebuild_clip_fts = base.rebuild_clip_fts
 
@@ -259,7 +240,7 @@ class ClipboardTable:
                  tags: Optional[List[str]] = None,
                  save_file_to_disk_if_large: bool = True,
                  preview_text: Optional[str] = None,
-                 store_thumbnail: bool = True,
+                 thumbnail_bytes: Optional[bytes] = None,
                  metadata: Optional[Dict[str, Any]] = None
                  ) -> str:
         """
@@ -282,21 +263,15 @@ class ClipboardTable:
 
         is_file = 0
         file_path = None
-        thumb_blob = None
         full_text = None
 
         if mime and (mime.startswith("text") or mime.endswith("xml") or mime.endswith("json")):
             try:
                 full_text = content.decode("utf-8", errors="replace")
-                if not preview_text:
-                    preview_text = full_text[:500]  # First 500 chars as preview
-                    if len(full_text) > 500:
-                        preview_text += "..."
             except Exception:
                 full_text = None
-                preview_text = None
 
-        if save_file_to_disk_if_large and size > self.FILE_ON_DISK_THRESHOLD:
+        if save_file_to_disk_if_large and mime==MimeType.IMAGE:
             ext = None
             if file_name and '.' in file_name:
                 ext = file_name.split('.')[-1]
@@ -304,11 +279,6 @@ class ClipboardTable:
             with open(file_path, "wb") as f:
                 f.write(content)
             is_file = 1
-            if store_thumbnail and mime and mime.startswith("image"):
-                thumb_blob = self.generate_image_thumbnail(content)
-        else:
-            if store_thumbnail and mime and mime.startswith("image"):
-                thumb_blob = self.generate_image_thumbnail(content)
 
         # Insert row
         self._execute(f"""
@@ -318,7 +288,7 @@ class ClipboardTable:
                 full_text, source_app, window_title, tags, language, metadata,
                 created_at, modified_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-        """, (clip_id, mime, size, content_hash, is_file, file_path, file_name, thumb_blob, preview_text,
+        """, (clip_id, mime, size, content_hash, is_file, file_path, file_name, thumbnail_bytes, preview_text,
               full_text, source_app, window_title, tags_json, None, metadata_json, now, now), commit=True)
 
         # Insert into FTS
@@ -327,7 +297,7 @@ class ClipboardTable:
 
         return clip_id
 
-    def get_clip(self, clip_id: str, load_file: bool = False) -> Optional[Dict[str, Any]]:
+    def get_clip(self, clip_id: str, full_content: bool = False) -> Optional[Dict[str, Any]]:
         cur = self._execute(f"SELECT * FROM {self.table} WHERE clip_id = ?;", (clip_id,))
         r = cur.fetchone()
         if not r:
@@ -338,17 +308,32 @@ class ClipboardTable:
             d["metadata"] = json.loads(d.get("metadata") or "{}")
         except Exception:
             d["metadata"] = {}
-        if load_file and d.get("is_file"):
-            try:
-                with open(d.get("file_path"), "rb") as f:
-                    d["content"] = f.read()
-            except Exception:
-                d["content"] = None
-        return d
 
-    def list_clips(self, limit: int = 100, offset: int = 0, order_by: str = "created_at DESC") -> List[Dict[str, Any]]:
+        mime_type = d["content_type"]
+        if mime_type == MimeType.IMAGE:
+            d["content"] = d["thumbnail"] if not full_content else None
+            d["full_text"] = None # save memory
+            if full_content and d.get("is_file"):
+                try:
+                    with open(d.get("file_path"), "rb") as f:
+                        d["content"] = f.read()
+                except Exception:
+                    d["content"] = None
+        elif mime_type == MimeType.TEXT or mime_type == MimeType.HTML:
+            d["content"] = d["full_text"] if full_content else d["preview_text"]
+        return d
+    
+    def list_clips(self, limit: int = 100, offset: int = 0, order_by: str = "created_at ASC") -> List[Dict[str, Any]]:
         cur = self._execute(f"SELECT clip_id, content_type, content_size, preview_text, thumbnail, created_at, source_app, file_name FROM {self.table} ORDER BY {order_by} LIMIT ? OFFSET ?;", (limit, offset))
-        return [dict(r) for r in cur.fetchall()]
+        result = []
+        for r in cur.fetchall():
+            d = dict(r)
+            if d["content_type"] == MimeType.IMAGE:
+                d["content"] = d["thumbnail"]
+            elif d["content_type"] == MimeType.TEXT or d["content_type"] == MimeType.HTML:
+                d["content"] = d["preview_text"]
+            result.append(d)
+        return result
 
     def delete_clip(self, clip_id: str, remove_file_from_disk: bool = True) -> bool:
         row = self._execute(f"SELECT is_file, file_path FROM {self.table} WHERE clip_id = ?;", (clip_id,)).fetchone()
@@ -523,7 +508,7 @@ class NotesTable:
     def add_note(self, title: str, main_text: str, tags: Optional[List[str]] = None) -> str:
         note_id = str(uuid.uuid4())
         now = iso_now()
-        preview = (main_text[:512] + "...") if len(main_text) > 512 else main_text
+        preview = main_text #(main_text[:512] + "...") if len(main_text) > 512 else main_text
         tags_json = self.json_dumps(tags or [])
         self._execute("INSERT INTO text_notes (note_id, content_type, title, main_text, preview_text, tags, created_at, modified_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
                       (note_id, 'text', title, main_text, preview, tags_json, now, now), commit=True)
@@ -543,7 +528,7 @@ class NotesTable:
             return False
         title = title if title is not None else r["title"]
         main_text = main_text if main_text is not None else r["main_text"]
-        preview = (main_text[:512] + "...") if len(main_text) > 512 else main_text
+        preview = main_text #(main_text[:512] + "...") if len(main_text) > 512 else main_text
         tags_json = self.json_dumps(tags if tags is not None else r.get("tags", []))
         now = iso_now()
         self._execute("UPDATE text_notes SET title = ?, main_text = ?, preview_text = ?, tags = ?, modified_at = ? WHERE note_id = ?;",
@@ -590,6 +575,13 @@ class ClipboardStore:
         self.base.close()
 
 
+class DatabaseRecord:
+    def __init__(self, db_row, table):
+        self.db_row = db_row
+        self.table = table
+    
+    def get_full_content(self) -> Optional[Dict[str, Any]]:
+        return self.table.get_clip(self.db_row['clip_id'], full_content=True)
 # ---------------- Usage example (for reference) ----------------
 if __name__ == "__main__":
     # quick demo (not a unit test)
