@@ -89,6 +89,7 @@ class ManualCard(QFrame):
         self.title_widget = self.clip_data_top.create_preview_widget(max_height=30)
         self.title_widget.setObjectName("manual_card_top")
         self.desc_widget = self.clip_data_bottom.create_preview_widget(max_height=60)
+        self.desc_widget.setTextFormat(Qt.MarkdownText)
         self.desc_widget.setObjectName("manual_card_bottom")
         text_col.addWidget(self.title_widget)
         text_col.addWidget(self.desc_widget)
@@ -136,8 +137,7 @@ class ManualCard(QFrame):
             QLabel {
                 border: none;
                 color: black;
-                font-size: 15px;
-                font-family: Ubuntu, sans-serif;
+                font-size: 15pt;
                 padding: 0px;
                 margin: 0px;
                 background-color: transparent;

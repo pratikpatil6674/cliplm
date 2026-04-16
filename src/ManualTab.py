@@ -72,8 +72,7 @@ class ManualTab(QWidget):
                 border-radius: 8px;
                 min-width: 80px;
                 text-transform: none; 
-                font-size: 15px;
-                font-family: Ubuntu, sans-serif;
+                font-size: 12pt;
                 font-weight: 600;
             }
             QPushButton:hover {
@@ -84,8 +83,7 @@ class ManualTab(QWidget):
             padding: 0px; 
             margin: 0px; 
             background-color: #F5F7FB;
-            font-size: 15px; 
-            font-family: Ubuntu, sans-serif; 
+            font-size: 15pt; 
         """)
 
     def set_delete_btn_visibility(self, state, list_widget: QListWidget):

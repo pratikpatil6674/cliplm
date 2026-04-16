@@ -101,17 +101,18 @@ class ManualEntryDialog(QDialog):
 
     def _setup_ui(self):
         self.setWindowTitle("New note")
+        self.resize(500, 300)
 
         self.layout = QVBoxLayout(self)
 
         self.title_input = QLineEdit(self)
-        self.title_input.setPlaceholderText("Enter title")
+        self.title_input.setPlaceholderText("Enter note title")
         
         self.title_input.setText(self.init_title)
         self.layout.addWidget(self.title_input)
 
         self.text_input = QPlainTextEdit(self)
-        self.text_input.setPlaceholderText("Enter main text")
+        self.text_input.setPlaceholderText("Enter note content")
         self.text_input.setPlainText(self.init_text)
         self.layout.addWidget(self.text_input)
 
@@ -151,13 +152,13 @@ class ManualEntryDialog(QDialog):
         # self.layout.addWidget(self.button_box)
         
     def _setup_styles(self):
-        self.title_input.setStyleSheet("background-color: #ffffff; color: #000000; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 5px;") 
+        self.title_input.setStyleSheet("background-color: #ffffff; color: #000000; font-size: 12pt; padding: 0px; margin: 5px;") 
         self.text_input.setStyleSheet("background-color: #ffffff; color: #000000;  padding: 10px; margin: 10px;") 
         self.text_input.setStyleSheet("""
             QPlainTextEdit {
                 border: 1px solid #ccc; /* default border */
-                background-color: #ffffff; color: #000000;font-size: 15px; font-family: Ubuntu, sans-serif;
-                margin-bottom: 12px;
+                background-color: #ffffff; color: #000000;font-size: 12pt;
+                margin-bottom: 12pt;
             }
 
             QPlainTextEdit:hover {
@@ -173,8 +174,7 @@ class ManualEntryDialog(QDialog):
                 border-radius: 8px;
                 min-width: 80px;
                 text-transform: none; 
-                font-size: 15px;
-                font-family: Ubuntu, sans-serif;
+                font-size: 12pt;
                 font-weight: 600;
             }
             QPushButton:hover {
@@ -190,8 +190,7 @@ class ManualEntryDialog(QDialog):
                 border-radius: 8px;
                 min-width: 80px;
                 text-transform: none; 
-                font-size: 15px;
-                font-family: Ubuntu, sans-serif;
+                font-size: 12pt;
                 font-weight: 600;
             }
             QPushButton:hover {
