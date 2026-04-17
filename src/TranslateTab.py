@@ -129,8 +129,7 @@ class TranslateTab(QWidget):
                 border-radius: 8px;
                 text-transform: none;
                 font-weight: 600;
-                font-family: Ubuntu, sans-serif;
-                font-size: 14px;
+                font-size: 12pt;
             }
             QPushButton#translate_button:hover {
                 background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #4b88fb, stop:1 #3871e0);
