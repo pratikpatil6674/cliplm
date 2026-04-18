@@ -9,9 +9,10 @@ import sys
 from resources import *
 
 class FavoriteCard(QFrame):
-    copyRequested = Signal(QMimeData)
-    pasteRequested = Signal(QMimeData)
+    copyRequested = Signal(str)
+    pasteRequested = Signal(str)
     deleteRequested = Signal(str)
+    MAX_CARD_HEIGHT = 180
     def __init__(self, id, clip_data):
         super().__init__()
         
@@ -25,74 +26,98 @@ class FavoriteCard(QFrame):
     def toggle_delete(self, visible: bool):
         self.delete_button.setVisible(visible)
         self.delete_button_placeholder.setVisible(not visible)
+        # self.copy_button.setVisible(visible)
+        # self.copy_button_placeholder.setVisible(not visible)
     
+    def sizeHint(self):
+        hint = super().sizeHint()
+        hint.setHeight(min(hint.height(), self.MAX_CARD_HEIGHT))
+        return hint
+
     def _setup_ui(self):
         self.setFrameShape(QFrame.StyledPanel)
         self.setMinimumHeight(60)
-        self.setMaximumHeight(180)
+        self.setMaximumHeight(self.MAX_CARD_HEIGHT)
         layout = QHBoxLayout(self)
         layout.setSpacing(12)
         
-        # Left: Vertical button layout
+        # ----- Left: Vertical button layout -----
         btn_size = 15
         btn_layout = QVBoxLayout()
         btn_layout.addStretch()
 
-        # btn_layout.setSpacing(0)
-        # btn_layout.setContentsMargins(0, 0, 0, 0)
         self.copy_button = QPushButton()
-        self.copy_button.setIcon(COPY_ICON)
+        self.copy_button.setObjectName("copy_button")
+        self.copy_button.setIcon(COPY_ICON_LIGHT)
         self.copy_button.setFixedSize(btn_size, btn_size)
         btn_layout.addWidget(self.copy_button)
+        # self.copy_button_placeholder = QPushButton()
+        # self.copy_button_placeholder.setFixedSize(btn_size, btn_size)
+        # self.copy_button_placeholder.hide()
+        # btn_layout.addWidget(self.copy_button_placeholder)
 
         btn_layout.addStretch()
 
         self.delete_button = QPushButton()
-        self.delete_button.setIcon(DELETE_ICON)
+        self.delete_button.setObjectName("delete_button")
+        self.delete_button.setIcon(DELETE_ICON_LIGHT)
         self.delete_button.setFixedSize(btn_size, btn_size)
         btn_layout.addWidget(self.delete_button)
-
-
         self.delete_button_placeholder = QPushButton()
         self.delete_button_placeholder.setFixedSize(btn_size, btn_size)
         self.delete_button_placeholder.hide()
         btn_layout.addWidget(self.delete_button_placeholder)
 
         btn_layout.addStretch()
+        # ----- Left: Vertical button layout -----
 
-        self.clip_widget = self.clip_data.create_preview_widget(max_height=150)
+        self.clip_widget = self.clip_data.create_preview_widget(max_height=self.MAX_CARD_HEIGHT - 60)
 
-        # Add both parts to the card layout
+        # ----- Add both parts to the card layout -----
         layout.addLayout(btn_layout)
-        layout.addWidget(self.clip_widget)
+        layout.addWidget(self.clip_widget, alignment=Qt.AlignmentFlag.AlignVCenter)
     
     def _setup_styles(self):
         self.setStyleSheet("""
             QFrame {
-                border: 1px solid rgba(30,36,44,0.06);
+                border: 1px solid #ccc;
                 background-color: #ffffff;
                 border-radius: 10px;
+                padding: 5px;
+                padding-bottom: 10px;
             }
             QFrame:hover {
-                border: 2px solid rgba(41,121,255,0.3);
+                border: 2px solid #2979ff;
             }
             QPushButton {
                 background-color: transparent;
                 border: none;
                 padding: 20px;
             }
-            QPushButton:hover {
+            QPushButton#delete_button:hover, QPushButton#copy_button:hover {
                 background-color: #e0e0e0;
             }
             QLabel {
                 border: none;
-                color: black; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;
+                color: black;
+                padding: 0px;
+                margin: 0px;
+                font-size: 10pt;
+                background-color: transparent;
             }
             QLabel:hover {
                 border: none;
             }
         """)
         # self.label.setStyleSheet(f"color: black; font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: transparent;")
+    
+    # def enterEvent(self, event):
+    #     self.toggle_delete(True)
+    #     super().enterEvent(event)
+    
+    # def leaveEvent(self, event):
+    #     self.toggle_delete(False)
+    #     super().leaveEvent(event)
     
     def _connect_signals(self) -> None:
         # Use partials or instance methods to avoid late-binding issues in loops
@@ -102,7 +127,7 @@ class FavoriteCard(QFrame):
 
     # --- private slots ---
     def _on_copy_clicked(self):
-        self.copyRequested.emit(self.clip_data.mime_data)
+        self.copyRequested.emit(self.clip_data.database_id)
 
     def _on_delete_clicked(self):
         self.deleteRequested.emit(self.id)
@@ -110,7 +135,7 @@ class FavoriteCard(QFrame):
     def _on_label_clicked(self, event):
         # If you want left click only:
         if event.button() == Qt.LeftButton:
-            self.pasteRequested.emit(self.clip_data.mime_data)
+            self.pasteRequested.emit(self.clip_data.database_id)
 
 
 class Demo(QWidget):

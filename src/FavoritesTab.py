@@ -12,9 +12,9 @@ from PySide6.QtWidgets import (
     QDialog,
     QCheckBox,
     QFrame,
+    QAbstractItemView
 )
 from PySide6.QtGui import QIcon
-import sys
 from resources import *
 from FavoriteCard import FavoriteCard
 from ClipData import ClipData
@@ -42,12 +42,13 @@ class FavoritesTab(QWidget):
         self.layout.setSpacing(0)
         self.setLayout(self.layout)
         self.list_widget.setAlternatingRowColors(False)
+        self.list_widget.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
     def _set_styles(self):
 
         self.setStyleSheet(f"background: #F5F7FB;")
         self.list_widget.setStyleSheet(
-            f"font-size: 15px; font-family: Ubuntu, sans-serif; padding: 0px; margin: 0px; background-color: #F5F7FB;"
+            f"font-size: 15pt; padding: 0px; margin: 0px; background-color: #F5F7FB;"
         )
 
     def set_delete_btn_visibility(self, list_widget: QListWidget):
@@ -65,8 +66,8 @@ class FavoritesTab(QWidget):
         list_item_widget = FavoriteCard(id, clip_data)
         list_item_widget.toggle_delete(self.delete_check.isChecked())
 
-        list_item_widget.copyRequested.connect(lambda mime_data: self.presenter.handle_copy_request(mime_data))
-        list_item_widget.pasteRequested.connect(lambda mime_data: self.presenter.handle_paste_request(mime_data))
+        list_item_widget.copyRequested.connect(lambda id: self.presenter.handle_copy_request(id))
+        list_item_widget.pasteRequested.connect(lambda id: self.presenter.handle_paste_request(id))
         list_item_widget.deleteRequested.connect(lambda id: self.presenter.handle_delete_request(id))
         list_item.setSizeHint(list_item_widget.sizeHint())
         self.list_widget.insertItem(0, list_item)
