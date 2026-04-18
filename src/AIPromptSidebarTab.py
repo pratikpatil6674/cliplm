@@ -38,15 +38,15 @@ class AIPromptSidebarTab(QWidget):
 
     def _setup_ui(self):
         root = QHBoxLayout(self)
-        root.setSpacing(12)
-        root.setContentsMargins(10, 10, 10, 10)
+        root.setSpacing(0)
+        root.setContentsMargins(0, 0, 0, 0)
 
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
         sidebar.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         sidebar.setFixedWidth(180)
         sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(10, 10, 10, 10)
+        sidebar_layout.setContentsMargins(10, 10, 0, 10)
         sidebar_layout.setSpacing(6)
 
         title_row = QHBoxLayout()
@@ -128,7 +128,7 @@ class AIPromptSidebarTab(QWidget):
         output_scroll.setWidget(self.ai_output_text)
         content_layout.addWidget(output_scroll)
 
-        root.addWidget(content, 1)
+        root.addWidget(content)
         self.setLayout(root)
 
     def _setup_styles(self):
@@ -137,8 +137,9 @@ class AIPromptSidebarTab(QWidget):
         QWidget { background: #f5f7fb; color: #1f2933; }
         QFrame#sidebar, QFrame#card {
             background: #ffffff;
-            border-radius: 10px;
-            border: 1px solid rgba(30,36,44,0.06);
+            border: 1px solid #ffffff;
+            margin: 0px;
+            border-radius: 0px;
         }
         QLabel#section_label {
             border: none;
