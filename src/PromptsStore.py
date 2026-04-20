@@ -14,7 +14,6 @@ class PromptsStore:
             with open(self.store_path, "rb") as f:
                 self.prompt_config = tomllib.load(f)
                 self.last_error = None
-                print("Loaded prompts:", self.prompt_config)
         except FileNotFoundError:
             print(f"{self.store_path} not found")
             self.prompt_config = {}

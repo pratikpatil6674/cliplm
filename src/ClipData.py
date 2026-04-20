@@ -77,20 +77,20 @@ class ClipData:
 
             obj.image_b64 = base64.b64encode(obj.data_bytes).decode("utf-8") # this will be sent to LLM service
             return obj
-        # Text (plain)
-        if qmime.hasText():
-            text = qmime.text()
-            obj = cls(MimeType.TEXT, str(text))
-            obj.data_bytes = text.encode("utf-8") if isinstance(text, str) else bytes(text)
-            obj.preview_text = text[:1000]  # limit preview size
-            return obj
-
         # HTML
         if qmime.hasHtml():
             html = qmime.html()
             obj = cls(MimeType.HTML, str(html))
             obj.data_bytes = html.encode("utf-8") if isinstance(html, str) else bytes(html)
             obj.preview_text = html[:1000]  # limit preview size
+            return obj
+
+        # Text (plain)
+        if qmime.hasText():
+            text = qmime.text()
+            obj = cls(MimeType.TEXT, str(text))
+            obj.data_bytes = text.encode("utf-8") if isinstance(text, str) else bytes(text)
+            obj.preview_text = text[:1000]  # limit preview size
             return obj
 
         # URLs (file lists)
@@ -213,9 +213,7 @@ class ClipData:
             lbl.setTextFormat(Qt.PlainText)
 
         lbl.setWordWrap(True)
-        lbl.setTextFormat(Qt.PlainText)
         lbl.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        lbl.setWordWrap(True)
         lbl.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
         self._preview_widget = lbl
         return lbl

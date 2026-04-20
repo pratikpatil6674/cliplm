@@ -265,7 +265,7 @@ class ClipboardTable:
         file_path = None
         full_text = None
 
-        if mime and (mime.startswith("text") or mime.endswith("xml") or mime.endswith("json")):
+        if mime and (mime.startswith("text") or mime.startswith("html") or mime.endswith("xml") or mime.endswith("json")):
             try:
                 full_text = content.decode("utf-8", errors="replace")
             except Exception:

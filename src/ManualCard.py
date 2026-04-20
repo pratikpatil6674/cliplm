@@ -61,7 +61,7 @@ class ManualCard(QFrame):
         icon_size = QSize(18, 18)  # design-scale icon size
 
         self.copy_btn = QToolButton()
-        self.copy_btn.setIcon(COPY_ICON)
+        self.copy_btn.setIcon(COPY_ICON_LIGHT)
         self.copy_btn.setIconSize(icon_size)
         self.copy_btn.setToolTip("Copy")
         self.copy_btn.setAutoRaise(True)  # flat look
@@ -69,7 +69,7 @@ class ManualCard(QFrame):
         icon_col.addStretch()
 
         self.delete_btn = QToolButton()
-        self.delete_btn.setIcon(DELETE_ICON)
+        self.delete_btn.setIcon(DELETE_ICON_LIGHT)
         self.delete_btn.setIconSize(icon_size)
         self.delete_btn.setToolTip("Delete")
         self.delete_btn.setAutoRaise(True)
@@ -78,6 +78,7 @@ class ManualCard(QFrame):
 
 
         self.delete_button_placeholder = QToolButton()
+        self.delete_button_placeholder.setObjectName("placeholder")
         self.delete_button_placeholder.setFixedSize(icon_size)
         self.delete_button_placeholder.hide()
         icon_col.addWidget(self.delete_button_placeholder)
@@ -96,7 +97,7 @@ class ManualCard(QFrame):
 
         # edit button on the far right
         self.edit_btn = QToolButton()
-        self.edit_btn.setIcon(EDIT_ICON)
+        self.edit_btn.setIcon(EDIT_ICON_LIGHT)
         self.edit_btn.setIconSize(icon_size)
         self.edit_btn.setToolTip("Edit")
         self.edit_btn.setAutoRaise(True)
@@ -120,24 +121,27 @@ class ManualCard(QFrame):
             }
             QLabel#manual_card_top {
                 color: #7a7a7a;
-                font-size: 10px;
+                font-size: 7pt;
             }
             QLabel#manual_card_bottom {
                 color: #111111;
-                font-size: 14px;
+                font-size: 10pt;
             }
             QToolButton {
                 background: transparent;
                 border: none;
             }
             QToolButton:hover {
-                background: rgba(0,0,0,0.04);
+                background: #e0e0e0;
                 border-radius: 4px;
+            }
+            QToolButton#placeholder:hover {
+                background: none;
             }
             QLabel {
                 border: none;
                 color: black;
-                font-size: 15pt;
+                font-size: 10pt;
                 padding: 0px;
                 margin: 0px;
                 background-color: transparent;
