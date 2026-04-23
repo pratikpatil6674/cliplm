@@ -1,6 +1,8 @@
 from ClipData import ClipData
 import logging
-
+from DataMapper import DataMapper
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
 logger = logging.getLogger(__name__)
 
 class IFavoritesPresenter:
@@ -20,12 +22,18 @@ class FavoritesPresenter():
     def handle_copy_request(self, database_id):
         db_row = self.model.get_clip(database_id, full_content=True)
         clip_data = ClipData.from_database(db_row)
+        modifiers = QApplication.keyboardModifiers()
+        if modifiers & Qt.ShiftModifier:
+            clip_data = DataMapper.to_plain_text(clip_data)
         if clip_data:
             self.clipboard_service.set_clipboard(clip_data.mime_data, trigger_paste=False)
 
     def handle_paste_request(self, database_id):
         db_row = self.model.get_clip(database_id, full_content=True)
         clip_data = ClipData.from_database(db_row)
+        modifiers = QApplication.keyboardModifiers()
+        if modifiers & Qt.ShiftModifier:
+            clip_data = DataMapper.to_plain_text(clip_data)
         if clip_data:
             self.clipboard_service.set_clipboard(clip_data.mime_data, trigger_paste=True)
         

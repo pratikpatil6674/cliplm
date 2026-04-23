@@ -1,7 +1,10 @@
 import time
 import os
 from ClipData import ClipData
+from DataMapper import DataMapper
 import logging
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
 logger=logging.getLogger(__name__)
 
 class IClipboardPresenter:
@@ -28,6 +31,9 @@ class ClipboardPresenter(IClipboardPresenter):
     def handle_copy_request(self, database_id):
         db_row = self.model.get_clip(database_id, full_content=True)
         clip_data = ClipData.from_database(db_row)
+        modifiers = QApplication.keyboardModifiers()
+        if modifiers & Qt.ShiftModifier:
+            clip_data = DataMapper.to_plain_text(clip_data)
         if clip_data:
             self.clipboard_service.set_clipboard(clip_data.mime_data, trigger_paste=False)
             self.handle_clipboard_change(clip_data.mime_data, save_to_db=False)
@@ -35,6 +41,9 @@ class ClipboardPresenter(IClipboardPresenter):
     def handle_paste_request(self, database_id):
         db_row = self.model.get_clip(database_id, full_content=True)
         clip_data = ClipData.from_database(db_row)
+        modifiers = QApplication.keyboardModifiers()
+        if modifiers & Qt.ShiftModifier:
+            clip_data = DataMapper.to_plain_text(clip_data)
         if clip_data:
             self.clipboard_service.set_clipboard(clip_data.mime_data, trigger_paste=True)
 
@@ -54,12 +63,16 @@ class ClipboardPresenter(IClipboardPresenter):
         duration = t2 - self.t1
         self.t1 = t2
         if (duration < 1.0 or not save_to_db) and clip_data.is_text_like() and self.translate_presenter:
-            text_data = clip_data.data
+            clip_data_tr = DataMapper.to_plain_text(clip_data)
+            text_data = clip_data_tr.data
             self.translate_presenter.update_input_text(text_data)
             logger.debug(f"Translate input updated for: {text_data[:50]}...")
     
         if (duration < 1.0 or not save_to_db) and self.ai_presenter:
-            self.ai_presenter.update_clipdata_preview(clip_data)
+            clip_data_ai = clip_data
+            if clip_data.is_text_like():
+                clip_data_ai = DataMapper.to_plain_text(clip_data)
+            self.ai_presenter.update_clipdata_preview(clip_data_ai)
             if save_to_db:
                 self.show_window_callback(tab_index=4)
             return
