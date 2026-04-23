@@ -1,4 +1,3 @@
-# import pyperclip
 # import pyautogui
 import sys
 from PySide6.QtCore import QTimer
@@ -21,7 +20,7 @@ class ClipboardService(QObject):
         self.internal_copy = False
         self.keyboard = Controller()
     
-    # def simulate_paste_event(self):
+    # def simulate_paste_event_with_pyautogui(self):
     #     """Simulate a global paste action using pyautogui. This is cross platform."""
 
     #     if sys.platform == 'darwin':
@@ -29,7 +28,7 @@ class ClipboardService(QObject):
     #     else:
     #         pyautogui.hotkey('ctrl', 'v')
     
-    def simulate_paste_event(self):
+    def simulate_paste_event_with_pynput(self):
         """ Simulate a global paste action using pynput. This is cross platform."""
         with self.keyboard.pressed(Key.ctrl):
             self.keyboard.press('v')
@@ -41,9 +40,9 @@ class ClipboardService(QObject):
         self.clipboard.setMimeData(qmime_data)
         
         if trigger_paste:
-            QTimer.singleShot(1, self.app.hide)
-            QTimer.singleShot(100, self.simulate_paste_event)
-            QTimer.singleShot(100, self.app.show)
+            QTimer.singleShot(100, self.app.hide)
+            QTimer.singleShot(200, self.simulate_paste_event_with_pynput)
+            QTimer.singleShot(400, self.app.show)
     
 
     def on_clipboard_change(self):
