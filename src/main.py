@@ -1,6 +1,7 @@
 import sys
 from QtSingleInstanceApp import QtSingleInstanceApp
 from PySide6.QtCore import Qt
+from resources import APP_ICON
 def main():
     single = QtSingleInstanceApp("neuroclip-app")
     if single.already_running():
@@ -19,12 +20,14 @@ def main():
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
     app = QApplication([])
+    app.setWindowIcon(APP_ICON)
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
     window = App()
+    window.setWindowIcon(APP_ICON)
     # app.setFont(QFont("Courier New", 12))
     single.start(window.move_near_cursor)
-    
+    QApplication.setQuitOnLastWindowClosed(False)
 
     window.show()
     with loop:

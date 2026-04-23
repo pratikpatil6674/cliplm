@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 from PySide6.QtWidgets import QGraphicsOpacityEffect
 
 from PySide6.QtGui import QCursor
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QColor, QMouseEvent
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QColor, QMouseEvent, QAction
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtCore import QCoreApplication, QStandardPaths, QDir, QSaveFile, QByteArray
 import qt_material
@@ -83,6 +83,8 @@ class App(QWidget):
         qt_material.apply_stylesheet(self, theme='light_blue.xml')
         self._setup_ui()
         self._set_styles()
+
+        self.setup_tray_icon()
 
         log_file = Path(self.data_dir) / "neuroclip.log"
         configure_app_logger(str(log_file))
@@ -305,8 +307,40 @@ class App(QWidget):
             if not enabled and self.tabs.currentWidget() is self.translate_tab:
                 self.tabs.setCurrentWidget(self.clipboard_tab)
 
+    def setup_tray_icon(self):
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(APP_ICON)
+        self.tray_icon.setToolTip("Clipboard Manager")
+
+        tray_menu = QMenu()
+
+        self.show_action = QAction("Show", self)
+        self.hide_action = QAction("Hide", self)
+        self.quit_action = QAction("Quit", self)
+
+        self.show_action.triggered.connect(self.show_window)
+        self.hide_action.triggered.connect(self.hide)
+        self.quit_action.triggered.connect(QApplication.quit)
+
+        tray_menu.addAction(self.show_action)
+        tray_menu.addAction(self.hide_action)
+        tray_menu.addSeparator()
+        tray_menu.addAction(self.quit_action)
+
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.activated.connect(self.on_tray_activated)
+        self.tray_icon.show()
+
     def show_window(self):
+        self.show()
+        self.showNormal()
         self.raise_()
         self.activateWindow()
-        # self.setWindowFlag(Qt.WindowStaysOnTopHint, False)
-        self.show()
+
+    def on_tray_activated(self, reason):
+        if reason == QSystemTrayIcon.DoubleClick:
+            self.show_window()
+
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
