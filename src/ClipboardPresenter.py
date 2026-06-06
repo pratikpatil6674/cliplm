@@ -61,6 +61,11 @@ class ClipboardPresenter(IClipboardPresenter):
         
         t2 = time.perf_counter()
         duration = t2 - self.t1
+        
+        # Skip if duration is too short (likely a duplicate)
+        if duration < 0.01:
+            return
+
         self.t1 = t2
         if (duration < 1.0 or not save_to_db) and clip_data.is_text_like() and self.translate_presenter:
             clip_data_tr = DataMapper.to_plain_text(clip_data)
@@ -90,10 +95,8 @@ class ClipboardPresenter(IClipboardPresenter):
             preview_text=clip_data.preview_text,
             thumbnail_bytes=clip_data.preview_bytes
         )
-        # if clip_id:
-        #     clip_data.database_id = clip_id
 
-        if clip_data.mime_type:
+        if clip_data.mime_type and clip_id:
             db_row = self.model.get_clip(clip_id, full_content=False)
             clip_data = ClipData.from_database(db_row)
             self.view.add_list_item(clip_id, clip_data)
