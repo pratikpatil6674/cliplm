@@ -93,7 +93,7 @@ class App(QWidget):
 
     
     def _setup_ui(self):
-        self.setWindowTitle("NeuroClip")
+        self.setWindowTitle("ClipLM")
         self.setGeometry(100, 100, 600, 500)
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
         self.window_radius = 12
@@ -203,7 +203,7 @@ class App(QWidget):
     
 
     def ensure_app_dirs(self):
-        APP_NAME = "NeuroClip"
+        APP_NAME = "ClipLM"
         QCoreApplication.setOrganizationName(APP_NAME)
         QCoreApplication.setApplicationName(APP_NAME)
 
