@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClipLM — AI Clipboard Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F5F7FB;
+      --surface: #FFFFFF;
+      --surface-2: #FBFDFF;
+      --accent-soft: #EEF4FF;
+      --accent-hi: #D9E8FF;
+      --text-1: #1F2933;
+      --text-2: #52606D;
+      --text-head: #22303C;
+      --text-deep: #163A70;
+      --blue: #1A73E8;
+      --blue-g1: #4B88FB;
+      --blue-g2: #3A7EF7;
+      --blue-g3: #2C62D6;
+      --blue-hover: #3871E0;
+      --border: rgba(30, 60, 120, 0.09);
+      --shadow-sm: 0 1px 4px rgba(26, 115, 232, 0.07), 0 0 0 1px rgba(30, 60, 120, 0.06);
+      --shadow-md: 0 4px 20px rgba(26, 115, 232, 0.10), 0 0 0 1px rgba(30, 60, 120, 0.07);
+      --shadow-lg: 0 12px 48px rgba(26, 115, 232, 0.14), 0 0 0 1px rgba(30, 60, 120, 0.07);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(245, 247, 251, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--text-head);
+      text-decoration: none;
+    }
+
+    .nav-logo-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-logo-icon svg,
+    .nav-logo-icon img {
+      width: 30px;
+      height: 30px;
+      display: block;
+      object-fit: contain;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-2);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--blue);
+    }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-primary {
+      padding: 9px 22px;
+      background: linear-gradient(160deg, var(--blue-g1) 0%, var(--blue-g3) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 2px 10px rgba(26, 115, 232, 0.28);
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 18px rgba(26, 115, 232, 0.36);
+    }
+
+    .btn-ghost {
+      padding: 9px 18px;
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-ghost:hover {
+      background: var(--surface);
+      color: var(--text-1);
+    }
+
+    /* HERO */
+    .hero {
+      padding: 152px 48px 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 700px;
+      background: radial-gradient(ellipse, rgba(75, 136, 251, 0.13) 0%, rgba(245, 247, 251, 0) 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(26, 115, 232, 0.18);
+      border-radius: 100px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--blue);
+      margin-bottom: 28px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .hero-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--blue-g1);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.6;
+        transform: scale(1.3);
+      }
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(44px, 6vw, 80px);
+      line-height: 1.08;
+      color: var(--text-head);
+      max-width: 860px;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 .accent {
+      background: linear-gradient(135deg, var(--blue-g1), var(--blue-g3));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-desc {
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text-2);
+      max-width: 520px;
+      margin-bottom: 40px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 72px;
+    }
+
+    .btn-primary-lg {
+      padding: 14px 28px;
+      font-size: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(26, 115, 232, 0.32);
+    }
+
+    .hero-note {
+      font-size: 12.5px;
+      color: var(--text-2);
+      opacity: 0.7;
+      margin-top: 10px;
+    }
+
+    /* NEW HERO IMAGE WRAPPER */
+    .hero-image-wrap {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .hero-image-wrap img {
+      width: 100%;
+      height: auto;
+      display: block;
+      /* Maintain sharpness on downscaled screenshot */
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: high-quality;
+      transform: translateZ(0);
+    }
+
+    /* FEATURES (ALTERNATING LIST) */
+    .section {
+      padding: 100px 48px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 120px;
+    }
+
+    .feature-row {
+      display: flex;
+      align-items: center;
+      gap: 80px;
+    }
+
+    .feature-row:nth-child(even) {
+      flex-direction: row-reverse;
+    }
+
+    .feature-text {
+      flex: 1;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 14px;
+    }
+
+    .feature-text h3 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(30px, 4vw, 42px);
+      line-height: 1.15;
+      color: var(--text-head);
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+
+    .feature-text p {
+      font-size: 16px;
+      color: var(--text-2);
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .feature-list-items {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .feature-list-items li {
+      position: relative;
+      padding-left: 26px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-1);
+      line-height: 1.6;
+    }
+
+    .feature-list-items li::before {
+      content: '';
+      position: absolute;
+      top: 7px;
+      left: 0;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue-g1), var(--blue-g3));
+      box-shadow: 0 0 0 4px rgba(75, 136, 251, 0.1);
+    }
+
+    .feature-image-wrap {
+      flex: 1;
+      position: relative;
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      background: var(--surface);
+    }
+
+    .feature-image-wrap:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .feature-image-wrap img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* STATS */
+    .stats-section {
+      padding: 80px 48px;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 40px;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--blue-g1), var(--blue-g3));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-2);
+      font-weight: 500;
+    }
+
+    /* CTA */
+    .cta-section {
+      padding: 100px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(75, 136, 251, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-card {
+      max-width: 680px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 60px 48px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-card h2 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.1;
+      color: var(--text-head);
+      letter-spacing: -0.025em;
+      margin-bottom: 16px;
+    }
+
+    .cta-card p {
+      font-size: 16px;
+      color: var(--text-2);
+      margin-bottom: 32px;
+      line-height: 1.7;
+    }
+
+    .cta-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 32px 48px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-head);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-2);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .footer-links a:hover {
+      color: var(--blue);
+    }
+
+    .footer-copy {
+      font-size: 12.5px;
+      color: var(--text-2);
+      opacity: 0.7;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      nav {
+        padding: 0 24px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        padding: 120px 24px 80px;
+      }
+
+      .section {
+        padding: 70px 24px;
+      }
+
+      .feature-row,
+      .feature-row:nth-child(even) {
+        flex-direction: column;
+        gap: 40px;
+      }
+
+      .stats-section {
+        grid-template-columns: 1fr 1fr;
+        padding: 60px 24px;
+      }
+
+      .cta-section {
+        padding: 70px 24px;
+      }
+
+      .cta-card {
+        padding: 40px 28px;
+      }
+
+      footer {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .stats-section {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-actions,
+      .cta-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero-badge {
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .hero h1 {
+      animation: fadeUp 0.5s 0.1s ease both;
+    }
+
+    .hero-desc {
+      animation: fadeUp 0.5s 0.2s ease both;
+    }
+
+    .hero-actions {
+      animation: fadeUp 0.5s 0.3s ease both;
+    }
+
+    .hero-note {
+      animation: fadeUp 0.5s 0.3s ease both;
+    }
+
+    .hero-image-wrap {
+      animation: fadeUp 0.7s 0.4s ease both;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent-hi);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#">
+      <div class="nav-logo-icon">
+      <img src="app.svg" alt="ClipLM app icon">
+      </div>
+      ClipLM
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#download">Download</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="#" class="btn-ghost">Docs</a>
+      <a href="#download" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Download free
+      </a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Now in public beta
+    </div>
+    <h1>Your clipboard,<br><span class="accent">finally intelligent.</span></h1>
+    <p class="hero-desc">ClipLM captures everything you copy — and turns it into something you can actually use.
+      History, snippets, translation, and AI in one compact tool.</p>
+    <div class="hero-actions">
+      <a href="#download" class="btn-primary btn-primary-lg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Download for macOS
+      </a>
+      <a href="#" class="btn-ghost" style="padding:14px 22px;font-size:15px;border-radius:12px;">View on GitHub</a>
+    </div>
+    <p class="hero-note">Free. Works offline. No account needed.</p>
+
+    <!-- APP SCREENSHOT -->
+    <div class="hero-image-wrap" style="margin-top: 40px;">
+      <img src="clipboard-tab.png" alt="ClipLM Interface Capture Window" loading="lazy">
+    </div>
+  </section>
+
+  <!-- FEATURES (Alternating List) -->
+  <section class="section" id="features">
+    <div class="feature-list">
+
+      <!-- Feature 1: AI Tools -->
+      <div class="feature-row scroll-reveal">
+        <div class="feature-text">
+          <div class="section-label">AI Workflows</div>
+          <h3>Instant intelligence. <br>No context switching.</h3>
+          <p>Maintain a personal library of reusable AI prompts. Whether you need to summarize an article, rewrite a
+            draft, classify data, or extract components from an image, it all runs directly against whatever is
+            currently stored in your clipboard.</p>
+          <ul class="feature-list-items">
+            <li>Select a saved prompt to instantly process copied text or images.</li>
+            <li>View the intelligent output directly inside the app.</li>
+            <li>Eliminates the friction of opening browser tabs and pasting manually.</li>
+          </ul>
+        </div>
+        <div class="feature-image-wrap">
+          <img src="ai-tab.png" alt="ClipLM AI Action Interface" loading="lazy">
+        </div>
+      </div>
+
+      <!-- Feature 2: Translation -->
+      <div class="feature-row scroll-reveal">
+        <div class="feature-text">
+          <div class="section-label">Translation</div>
+          <h3>Break the <br>language barrier.</h3>
+          <p>A dedicated native translation workspace that leverages your clipboard. The text you copy flows
+            automatically into the input field. Pick your language pairing, click once, and pull the translated output
+            directly to your cursor.</p>
+          <ul class="feature-list-items">
+            <li>Auto-detects the source language effortlessly.</li>
+            <li>Stores your frequent language combinations in memory.</li>
+            <li>Replaces the need for external translation websites entirely.</li>
+          </ul>
+        </div>
+        <div class="feature-image-wrap">
+          <img src="translate-tab.png" alt="ClipLM Translation Interface" loading="lazy">
+        </div>
+      </div>
+
+      <!-- Feature 3: Notes -->
+      <div class="feature-row scroll-reveal">
+        <div class="feature-text">
+          <div class="section-label">Notes Workspace</div>
+          <h3>Your temporary thoughts, permanently saved.</h3>
+          <p>A built-in lightweight scratchpad for the information that should outlive the fast pace of your clipboard.
+            Take manual notes with distinct titles and formatted bodies, ensuring your ideas are never further than a
+            hotkey away.</p>
+          <ul class="feature-list-items">
+            <li>Create clean, structured text notes natively.</li>
+            <li>Easily transfer bodies of text between different applications.</li>
+            <li>Perfect for saving meeting agendas, drafts, and immediate to-do items.</li>
+          </ul>
+        </div>
+        <div class="feature-image-wrap">
+          <img src="notes-tab.png" alt="ClipLM Notes Interface" loading="lazy">
+        </div>
+      </div>
+
+      <!-- Feature 4: Favorites -->
+      <div class="feature-row scroll-reveal">
+        <div class="feature-text">
+          <div class="section-label">Saved Snippets</div>
+          <h3>A library for the <br>things you re-use.</h3>
+          <p>Protect important content from getting washed away by an overflowing clipboard history. Simply "star" any
+            item to instantly push it into your permanent Favorites list. Boilerplates are always right where you left
+            them.</p>
+          <ul class="feature-list-items">
+            <li>Access frequently used templates, code, links, and replies.</li>
+            <li>Bypass rewriting the exact same content over and over.</li>
+            <li>Directly copy items without leaving your current primary app window.</li>
+          </ul>
+        </div>
+        <div class="feature-image-wrap">
+          <img src="favorites-tab.png" alt="ClipLM Favorites Interface" loading="lazy">
+        </div>
+      </div>
+
+      <!-- Feature 5: Settings / Privacy -->
+      <div class="feature-row scroll-reveal">
+        <div class="feature-text">
+          <div class="section-label">Settings & Privacy</div>
+          <h3>Your machine. <br>Your configurations.</h3>
+          <p>ClipLM believes in keeping your active workspace private and giving you the power to choose what powers
+            your tools. Turn workflow capabilities on or off as needed, securely on your own filesystem.</p>
+          <ul class="feature-list-items">
+            <li>Bring your own API keys for intelligent features—zero subscriptions required.</li>
+            <li>Works seamlessly with OpenAI, Anthropic, or even custom local endpoints.</li>
+            <li>Local-first architecture ensures entirely offline usage for native features.</li>
+          </ul>
+        </div>
+        <div class="feature-image-wrap">
+          <img src="settings-tab.png" alt="ClipLM Settings Interface" loading="lazy">
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+    <div class="stats-section">
+      <div class="stat-card scroll-reveal">
+        <div class="stat-num">5</div>
+        <div class="stat-label">Core workflows</div>
+      </div>
+      <div class="stat-card scroll-reveal">
+        <div class="stat-num">∞</div>
+        <div class="stat-label">Clipboard entries stored</div>
+      </div>
+      <div class="stat-card scroll-reveal">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">Local — no cloud sync</div>
+      </div>
+      <div class="stat-card scroll-reveal">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Accounts required</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <section class="cta-section" id="download">
+    <div class="cta-card scroll-reveal">
+      <h2>Stop losing things<br>you copy.</h2>
+      <p>ClipLM is free to download. Works on macOS and Windows. No account, no telemetry, no lock-in.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn-primary btn-primary-lg">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Download for macOS
+        </a>
+        <a href="#" class="btn-ghost" style="padding:14px 20px;font-size:15px;border-radius:12px;">Windows ↗</a>
+      </div>
+      <p style="margin-top:20px;font-size:12px;color:var(--text-2);opacity:0.65;">macOS 12+ · Windows 10+ · MIT License
+      </p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">
+      <div class="nav-logo-icon" style="width:26px;height:26px;border-radius:7px;">
+        <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;">
+          <path d="M5 12V5C5 3.89543 5.89543 3 7 3C8.10457 3 9 3.89543 9 5V13C9 14.1046 9.89543 15 11 15C12.1046 15 13 14.1046 13 13V5" 
+            stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M5 12L13 7" stroke="white" stroke-width="2.2" stroke-linecap="round" />
+        </svg>
+      </div>
+      ClipLM
+    </div>
+    <ul class="footer-links">
+      <li><a href="#">GitHub</a></li>
+      <li><a href="#">Docs</a></li>
+      <li><a href="#">Changelog</a></li>
+      <li><a href="#">Privacy</a></li>
+    </ul>
+    <span class="footer-copy">© 2025 ClipLM. MIT License.</span>
+  </footer>
+
+  <script>
+    // Subtle scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.scroll-reveal').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(24px)';
+      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+      observer.observe(el);
+    });
+  </script>
+
+</body>
+
+</html>
