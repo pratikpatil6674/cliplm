@@ -5,3 +5,8 @@ archive
 **/temp*
 build
 .vscode
+parts
+prime
+overlay
+.craft
+stage

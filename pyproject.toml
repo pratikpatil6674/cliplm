@@ -1,5 +1,5 @@
 [project]
-name = "neuroclip"
+name = "cliplm"
 version = "0.1.0"
 description = "AI-powered clipboard manager with custom prompts"
 readme = "README.md"
@@ -22,4 +22,4 @@ dev = [
 ]
 
 [project.scripts]
-neuroclip = "main:main"
+cliplm = "main:main"
