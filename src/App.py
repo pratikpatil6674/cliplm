@@ -23,7 +23,7 @@ from pathlib import Path
 from resources import *
 from ClipboardService import ClipboardService
 from ClipData import ClipData
-from TranslateService import GoogleTranslateService
+from TranslateService import TranslateService
 from JsonDB import ClipboardDB, FavoritesDB, ManualDB
 from SqlDB import ClipboardStore
 
@@ -65,20 +65,25 @@ class App(QWidget):
                     "enabled": True,
                     "source_language": "auto",
                     "destination_language": "en",
+                    "api": "google",
                 },
             },
         )
         self.settings = self.settings_store.get()
         self.clipboard_service = ClipboardService(self)
-        self.translate_service = GoogleTranslateService()
-        self.clipboard_store = ClipboardStore(Path(self.data_dir) / "clipboard.db", self.data_dir)
-
         ai_settings = self.settings.get("ai", {})
         self.ai_service = LLMService(
             endpoint=ai_settings.get("endpoint", ""),
             api_key=ai_settings.get("api_key", ""),
             model=ai_settings.get("model", ""),
         )
+        self.translate_service = TranslateService(self.ai_service)
+        translate_settings = self.settings.get("translate", {})
+        self.translate_service.configure(
+            provider=translate_settings.get("api", "google"),
+            llm_service=self.ai_service,
+        )
+        self.clipboard_store = ClipboardStore(Path(self.data_dir) / "clipboard.db", self.data_dir)
         self.prompts_store = PromptsStore(Path(self.config_dir) / "prompts.toml")
         qt_material.apply_stylesheet(self, theme='light_blue.xml')
         self._setup_ui()
@@ -278,6 +283,7 @@ class App(QWidget):
         self.settings = self.settings_store.update(updated_settings)
         self.settings_tab.set_settings(self.settings)
         self._apply_ai_settings()
+        self._apply_translate_settings()
         self._apply_translate_tab_visibility(
             self.settings.get("translate", {}).get("enabled", True)
         )
@@ -288,6 +294,13 @@ class App(QWidget):
             endpoint=ai_settings.get("endpoint", ""),
             api_key=ai_settings.get("api_key", ""),
             model=ai_settings.get("model", ""),
+        )
+
+    def _apply_translate_settings(self):
+        translate_settings = self.settings.get("translate", {})
+        self.translate_service.configure(
+            provider=translate_settings.get("api", "google"),
+            llm_service=self.ai_service,
         )
 
     def _handle_translate_language_change(self, source_language, destination_language):

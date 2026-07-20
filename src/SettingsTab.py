@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -78,8 +79,19 @@ class SettingsTab(QWidget):
         self.translate_enabled_checkbox.setObjectName("toggle")
         translate_layout.addWidget(self.translate_enabled_checkbox)
 
+        self.translate_api_label = QLabel("Translation API")
+        self.translate_api_label.setObjectName("field_label")
+        translate_layout.addWidget(self.translate_api_label)
+
+        self.translate_api_combo = QComboBox()
+        self.translate_api_combo.setObjectName("text_input")
+        self.translate_api_combo.addItem("Google Translate API", "google")
+        self.translate_api_combo.addItem("LLM API", "llm")
+        translate_layout.addWidget(self.translate_api_combo)
+
         translate_hint = QLabel(
-            "Source and target language preferences are saved from the Translate tab."
+            "Source and target language preferences are saved from the Translate tab. "
+            "If you select LLM API, Translate uses the endpoint, model, and API key from Agent Settings."
         )
         translate_hint.setObjectName("hint_label")
         translate_hint.setWordWrap(True)
@@ -168,6 +180,12 @@ class SettingsTab(QWidget):
         self.translate_enabled_checkbox.setChecked(
             translate_settings.get("enabled", True)
         )
+        translate_api_index = self.translate_api_combo.findData(
+            translate_settings.get("api", "google")
+        )
+        self.translate_api_combo.setCurrentIndex(
+            translate_api_index if translate_api_index >= 0 else 0
+        )
 
     def get_settings(self):
         return {
@@ -178,5 +196,6 @@ class SettingsTab(QWidget):
             },
             "translate": {
                 "enabled": self.translate_enabled_checkbox.isChecked(),
+                "api": self.translate_api_combo.currentData(),
             },
         }
