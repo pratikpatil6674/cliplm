@@ -8,6 +8,8 @@ EDIT_ICON = QIcon(":/resources/icons/edit.svg")
 FAV_ICON = QIcon(":/resources/icons/fav.svg")
 
 COPY_ICON_LIGHT = QIcon(":/resources/icons/copy_light.svg")
+COPY_ICON_DARK = QIcon(":/resources/icons/copy.svg")
+PASTE_ICON_DARK = QIcon(":/resources/icons/paste_dark.svg")
 DELETE_ICON_LIGHT = QIcon(":/resources/icons/delete_light.svg")
 EDIT_ICON_LIGHT = QIcon(":/resources/icons/edit_light.svg")
 
@@ -25,3 +27,6 @@ NOTE_ICON_LIGHT = QIcon(":/resources/icons/note_light.svg")
 TRANSLATE_ICON_LIGHT = QIcon(":/resources/icons/translate_light.svg")
 AI_ICON_LIGHT = QIcon(":/resources/icons/ai_light.svg")
 SETTINGS_ICON_LIGHT = QIcon(":/resources/icons/settings_light.svg")
+
+ADD_ICON_DARK = QIcon(":/resources/icons/add_dark.svg")
+SYNC_ICON_DARK = QIcon(":/resources/icons/sync_dark.svg")
