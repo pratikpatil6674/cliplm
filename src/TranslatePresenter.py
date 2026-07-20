@@ -11,7 +11,6 @@ class TranslatePresenter(QObject):
         self.translationRequested.connect(self.translate_service.translate_text)
         self.view = view
         self.view.translateRequested.connect(self.handle_translate_request)
-        self.last_input_text = ""
         self._load_languages()
 
     def _load_languages(self):
@@ -20,11 +19,10 @@ class TranslatePresenter(QObject):
         self.view.set_language_options(source_languages, destination_languages)
 
     def update_input_text(self, src_text):
-        self.last_input_text = src_text or ""
-        self.view.set_input_text(self.last_input_text)
+        self.view.set_input_text(src_text or "")
 
     def handle_translate_request(self):
-        src_text = self.last_input_text.strip()
+        src_text = self.view.get_source_text()
         if not src_text:
             self.view.set_translated_text("Copy text first.")
             return
@@ -35,5 +33,4 @@ class TranslatePresenter(QObject):
         self.translationRequested.emit(src_text, source_language, destination_language)
 
     def refresh_view(self, src_text, translated_text):
-        self.last_input_text = src_text
         self.view.set_text(src_text, translated_text)

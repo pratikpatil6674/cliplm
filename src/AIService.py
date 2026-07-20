@@ -8,7 +8,7 @@ class LLMService(QObject):
     def __init__(self, endpoint=None, api_key=None, model=None):
         super().__init__()
         self.client = None
-        self.model = model or "gemini-2.5-flash"
+        self.model = model
         self.configure(endpoint=endpoint, api_key=api_key, model=model)
 
     def configure(self, endpoint=None, api_key=None, model=None):
@@ -17,16 +17,18 @@ class LLMService(QObject):
             api_key=api_key,
             base_url=endpoint,
         )
+
+    async def complete_text(self, prompt: str) -> str:
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content or ""
     
     @asyncSlot(str, str)
     async def send_text_prompt(self, prompt, text):
-        print(f"Sending text prompt: {prompt}, input: {text}")
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": f"{prompt}\n\n{text}"}]
-        )
-
-        res = response.choices[0].message.content
+        # print(f"Sending text prompt: {prompt}, input: {text}")
+        res = await self.complete_text(f"{prompt}\n\n{text}")
 
         self.aiCompleted.emit(prompt, res)
     
