@@ -49,7 +49,7 @@ class AIPresenter(QObject):
     def set_input_view(self, prompt_text, clip_data):
         self.view.set_prompt(prompt_text)
         preview_widget = clip_data.create_preview_widget()
-        print(f"Preview widget: {preview_widget}, data is {clip_data.data}")
+        # print(f"Preview widget: {preview_widget}, data is {clip_data.data}")
         if preview_widget:
             self.view.set_input_data(preview_widget)
         else:

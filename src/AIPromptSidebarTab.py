@@ -1,8 +1,9 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEvent, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -20,6 +21,7 @@ from PySide6.QtWidgets import (
 from PlaceHolder import Placeholder
 from PromptEditorDialog import PromptEditorDialog
 from PromptsStore import PromptsStore
+from resources import ADD_ICON_DARK, COPY_ICON_DARK, PASTE_ICON_DARK, SYNC_ICON_DARK
 
 
 class AIPromptSidebarTab(QWidget):
@@ -32,6 +34,7 @@ class AIPromptSidebarTab(QWidget):
         self.prompt_store = prompt_store
         self.prompt_config = {}
         self._ai_enabled = True
+        self._output_actions_visible = False
         self._setup_ui()
         self._setup_styles()
         self.reload_prompts(show_feedback=False)
@@ -56,11 +59,18 @@ class AIPromptSidebarTab(QWidget):
         title_row.addWidget(self.prompts_title)
         title_row.addStretch(1)
 
+        self.open_prompts_store_button = QToolButton()
+        self.open_prompts_store_button.setObjectName("open_prompts_store_button")
+        self.open_prompts_store_button.setText("+")
+        self.open_prompts_store_button.setIcon(ADD_ICON_DARK)
+        self.open_prompts_store_button.setToolTip("Add/Edit prompts")
+        self.open_prompts_store_button.setCursor(Qt.PointingHandCursor)
+        self.open_prompts_store_button.clicked.connect(self._open_prompt_editor)
+        title_row.addWidget(self.open_prompts_store_button)
+
         self.reload_prompts_button = QToolButton()
         self.reload_prompts_button.setObjectName("reload_prompts_button")
-        self.reload_prompts_button.setIcon(
-            self.style().standardIcon(QStyle.SP_BrowserReload)
-        )
+        self.reload_prompts_button.setIcon(SYNC_ICON_DARK)
         self.reload_prompts_button.setToolTip("Reload prompts")
         self.reload_prompts_button.setCursor(Qt.PointingHandCursor)
         self.reload_prompts_button.clicked.connect(self.reload_prompts)
@@ -72,12 +82,6 @@ class AIPromptSidebarTab(QWidget):
         self.prompts_list.setObjectName("prompts_list")
         self.prompts_list.itemClicked.connect(self._on_prompt_clicked)
         sidebar_layout.addWidget(self.prompts_list, 1)
-
-        self.open_prompts_store_button = QPushButton("Add/Edit prompts")
-        self.open_prompts_store_button.setObjectName("open_prompts_store_button")
-        self.open_prompts_store_button.setCursor(Qt.PointingHandCursor)
-        self.open_prompts_store_button.clicked.connect(self._open_prompt_editor)
-        sidebar_layout.addWidget(self.open_prompts_store_button)
 
         root.addWidget(sidebar)
 
@@ -123,10 +127,55 @@ class AIPromptSidebarTab(QWidget):
         self.ai_output_text.setTextInteractionFlags(
             Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse
         )
-        output_scroll = QScrollArea()
-        output_scroll.setWidgetResizable(True)
-        output_scroll.setWidget(self.ai_output_text)
-        content_layout.addWidget(output_scroll)
+        self.output_card = QFrame()
+        self.output_card.setObjectName("output_card")
+        self.output_card.installEventFilter(self)
+        output_card_layout = QGridLayout(self.output_card)
+        output_card_layout.setContentsMargins(0, 0, 0, 0)
+        output_card_layout.setSpacing(0)
+
+        self.output_scroll = QScrollArea()
+        self.output_scroll.setWidgetResizable(True)
+        self.output_scroll.setFrameShape(QFrame.NoFrame)
+        self.output_scroll.setWidget(self.ai_output_text)
+        self.output_scroll.viewport().installEventFilter(self)
+        output_card_layout.addWidget(self.output_scroll, 0, 0)
+
+        self.output_actions_container = QFrame(self.output_card)
+        self.output_actions_container.setObjectName("output_actions_container")
+        self.output_actions_container.installEventFilter(self)
+        output_actions = QHBoxLayout(self.output_actions_container)
+        output_actions.setContentsMargins(0, 0, 0, 0)
+        output_actions.setSpacing(0)
+
+        self.copy_output_button = QToolButton()
+        self.copy_output_button.setObjectName("output_action_button")
+        self.copy_output_button.setIcon(COPY_ICON_DARK)
+        self.copy_output_button.setToolTip("Copy output")
+        self.copy_output_button.setCursor(Qt.PointingHandCursor)
+        self.copy_output_button.clicked.connect(
+            lambda: self._handle_copy_output_click(self.ai_output_text.text())
+        )
+        output_actions.addWidget(self.copy_output_button)
+
+        self.paste_output_button = QToolButton()
+        self.paste_output_button.setObjectName("output_action_button")
+        self.paste_output_button.setIcon(PASTE_ICON_DARK)
+        self.paste_output_button.setToolTip("Paste output")
+        self.paste_output_button.setCursor(Qt.PointingHandCursor)
+        self.paste_output_button.clicked.connect(
+            lambda: self._handle_paste_output_click(self.ai_output_text.text())
+        )
+        output_actions.addWidget(self.paste_output_button)
+
+        output_card_layout.addWidget(
+            self.output_actions_container,
+            0,
+            0,
+            alignment=Qt.AlignTop | Qt.AlignRight,
+        )
+        self.output_actions_container.hide()
+        content_layout.addWidget(self.output_card)
 
         root.addWidget(content)
         self.setLayout(root)
@@ -146,8 +195,8 @@ class AIPromptSidebarTab(QWidget):
             background: transparent;
             padding: 0;
             font-size: 14px;
+            text-transform: none;
             font-weight: 700;
-            text-transform: none; 
             color: #52606d;
         }
         QLabel#ai_input_prompt, QLabel#ai_output_text {
@@ -158,6 +207,17 @@ class AIPromptSidebarTab(QWidget):
             background: #fbfdff;
             border-radius: 8px;
         }
+        QFrame#output_card {
+            background: transparent;
+            border: none;
+        }
+        QFrame#output_actions_container {
+            background: rgba(255, 255, 255, 0.94);
+            border: 0px solid rgba(30,36,44,0.08);
+            border-radius: 8px;
+            padding: 0px;
+            margin: 1px;
+        }
         QListWidget#prompts_list {
             border: 1px solid rgba(30,36,44,0.06);
             border-radius: 8px;
@@ -166,38 +226,50 @@ class AIPromptSidebarTab(QWidget):
             outline: none;
         }
         QListWidget#prompts_list::item {
-            padding: 6px 8px;
+            padding: 4px 6px;
             border-radius: 6px;
-            margin: 1px 0;
+            margin: 0px 0;
         }
         QListWidget#prompts_list::item:selected {
             background: #d9e8ff;
             color: #163a70;
         }
-        QPushButton#open_prompts_store_button {
-            background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #3a7ef7, stop:1 #2c62d6);
-            color: #fff;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 12pt;
-            text-align: center;
-            text-transform: none; 
+        QListWidget#prompts_list::item:hover {
+            background: #eef4ff;
+            border-radius: 6px;
         }
-        QPushButton#open_prompts_store_button:hover {
-            background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #4b88fb, stop:1 #3871e0);
-        }
+        QToolButton#open_prompts_store_button,
         QToolButton#reload_prompts_button {
             background: transparent;
-            padding: 0px;
             border: none;
+            min-width: 22px;
+            min-height: 22px;
+            padding: 0px;
+            color: #52606d;
+            font-size: 14px;
+            font-weight: 700;
         }
+        QToolButton#open_prompts_store_button:hover,
         QToolButton#reload_prompts_button:hover {
+            background: #eef4ff;
+            border-radius: 6px;
+        }
+        QToolButton#output_action_button {
             background: transparent;
+            border: none;
+            min-width: 24px;
+            min-height: 24px;
+            padding: 0px;
+            margin: 0px;
+        }
+        QToolButton#output_action_button:hover {
+            background: #eef4ff;
+            border-radius: 6px;
         }
         QLabel#ai_output_text {
             background: #ffffff;
+            padding-top: 18px;
+            padding-right: 64px;
         }
         """
         )
@@ -330,6 +402,53 @@ class AIPromptSidebarTab(QWidget):
     def set_input_data(self, input_data_widget):
         self.input_data_placeholder.set_widget(input_data_widget)
         self._update_input_placeholder_height()
+
+    def _handle_copy_output_click(self, text: str):
+        _ = text
+
+    def _handle_paste_output_click(self, text: str):
+        _ = text
+
+    def eventFilter(self, watched, event):
+        if not all(
+            hasattr(self, attr)
+            for attr in (
+                "output_card",
+                "output_scroll",
+                "output_actions_container",
+                "copy_output_button",
+                "paste_output_button",
+            )
+        ):
+            return super().eventFilter(watched, event)
+
+        if watched in {
+            self.output_card,
+            self.output_scroll.viewport(),
+            self.output_actions_container,
+        }:
+            if event.type() == QEvent.Enter:
+                self._set_output_actions_visible(True)
+            elif event.type() == QEvent.Leave:
+                QTimer.singleShot(0, self._refresh_output_actions_visibility)
+        return super().eventFilter(watched, event)
+
+    def _refresh_output_actions_visibility(self):
+        should_show = (
+            self.output_card.underMouse()
+            or self.output_scroll.viewport().underMouse()
+            or self.output_actions_container.underMouse()
+            or self.copy_output_button.underMouse()
+            or self.paste_output_button.underMouse()
+        )
+        self._set_output_actions_visible(should_show)
+
+    def _set_output_actions_visible(self, visible: bool):
+        if self._output_actions_visible == visible:
+            return
+
+        self._output_actions_visible = visible
+        self.output_actions_container.setVisible(visible)
 
     def resizeEvent(self, event):
         # Recompute the preview height when the tab is resized so the cap grows
