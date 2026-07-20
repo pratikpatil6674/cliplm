@@ -323,7 +323,7 @@ class ClipboardTable:
             d["content"] = d["full_text"] if full_content else d["preview_text"]
         return d
     
-    def list_clips(self, limit: int = 100, offset: int = 0, order_by: str = "created_at ASC") -> List[Dict[str, Any]]:
+    def list_clips(self, limit: int = 10000, offset: int = 0, order_by: str = "created_at ASC") -> List[Dict[str, Any]]:
         cur = self._execute(f"SELECT clip_id, content_type, content_size, preview_text, thumbnail, created_at, source_app, file_name FROM {self.table} ORDER BY {order_by} LIMIT ? OFFSET ?;", (limit, offset))
         result = []
         for r in cur.fetchall():
