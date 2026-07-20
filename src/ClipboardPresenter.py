@@ -1,5 +1,5 @@
 import time
-import os
+import hashlib
 from ClipData import ClipData
 from DataMapper import DataMapper
 import logging
@@ -25,7 +25,7 @@ class ClipboardPresenter(IClipboardPresenter):
         self.show_window_callback = show_window_callback
         self.translate_presenter = None
         self.ai_presenter = None
-        
+        self._last_signature = None
         self.t1 = time.perf_counter()
 
     def handle_copy_request(self, database_id):
@@ -53,30 +53,58 @@ class ClipboardPresenter(IClipboardPresenter):
             self.view.delete_list_item(id)
         else:
             logger.error(f"Failed to move item {id} to favorites")
+    
+    def clipboard_signature(self, mime):
+        if mime.hasHtml():
+            value = mime.html()
+            return ("html", hashlib.sha256(value.encode("utf-8")).digest())
+
+        if mime.hasUrls():
+            value = "\n".join(url.toString() for url in mime.urls())
+            return ("urls", hashlib.sha256(value.encode("utf-8")).digest())
+
+        if mime.hasText():
+            value = mime.text()
+            return ("text", hashlib.sha256(value.encode("utf-8")).digest())
+
+        if mime.hasImage():
+            image = mime.imageData()
+            return ("image", image.cacheKey())
+
+        return None
 
     def handle_clipboard_change(self, mime_data, save_to_db: bool = True):
-        clip_data = ClipData.from_qmime(mime_data)
-        if clip_data.data is None:
-            return
-        
-        t2 = time.perf_counter()
-        duration = t2 - self.t1
-        
-        # Skip if duration is too short (likely a duplicate)
-        if duration < 0.01:
+        if not mime_data or not mime_data.formats():
             return
 
+        # print("Mime data is ", mime_data,mime_data.formats(), mime_data.text(), flush=True)
+        t2 = time.perf_counter()
+        duration = t2 - self.t1
+        # print(f"{duration=}")
         self.t1 = t2
-        if (duration < 1.0 or not save_to_db) and clip_data.is_text_like() and self.translate_presenter:
+        double_copy =  0.1 <= duration <= 1.0 # Skip if duration is too short (system fluctuations) or too long
+        signature = self.clipboard_signature(mime_data)
+        if signature is None:
+            return
+        if signature == self._last_signature and not double_copy:
+            return
+        self._last_signature = signature
+
+        clip_data = ClipData.from_qmime(mime_data)
+        if clip_data is None or clip_data.data is None:
+            return
+
+        if (double_copy or not save_to_db) and clip_data.is_text_like() and self.translate_presenter:
             clip_data_tr = DataMapper.to_plain_text(clip_data)
             text_data = clip_data_tr.data
             self.translate_presenter.update_input_text(text_data)
             logger.debug(f"Translate input updated for: {text_data[:50]}...")
     
-        if (duration < 1.0 or not save_to_db) and self.ai_presenter:
-            clip_data_ai = clip_data
+        if (double_copy or not save_to_db) and self.ai_presenter:
             if clip_data.is_text_like():
                 clip_data_ai = DataMapper.to_plain_text(clip_data)
+            else:
+                clip_data_ai = clip_data
             self.ai_presenter.update_clipdata_preview(clip_data_ai)
             if save_to_db:
                 self.show_window_callback(tab_index=4)
