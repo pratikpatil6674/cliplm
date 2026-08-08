@@ -1,11 +1,31 @@
 from dataclasses import dataclass
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QStyle, QVBoxLayout, QWidget, QStackedWidget
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from SidebarTabButton import SidebarTabButton
-from resources import *
+from resources import (
+    AI_ICON,
+    AI_ICON_LIGHT,
+    CLIP_ICON,
+    CLIP_ICON_LIGHT,
+    NOTE_ICON,
+    NOTE_ICON_LIGHT,
+    SETTINGS_ICON,
+    SETTINGS_ICON_LIGHT,
+    STAR_ICON,
+    STAR_ICON_LIGHT,
+    SYNC_ICON_DARK,
+    TRANSLATE_ICON,
+    TRANSLATE_ICON_LIGHT,
+)
 
 
 @dataclass
@@ -21,11 +41,13 @@ class _TabRecord:
 
 class SidebarTabWidget(QWidget):
     currentChanged = Signal(int)
+    updateRequested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._records = []
         self._current_index = -1
+        self._available_update_version = ""
         self._setup_ui()
 
     def _setup_ui(self):
@@ -48,6 +70,34 @@ class SidebarTabWidget(QWidget):
 
         self.bottom_tabs_layout = QVBoxLayout()
         self.bottom_tabs_layout.setSpacing(4)
+
+        self.update_button = SidebarTabButton(
+            "Updates",
+            SYNC_ICON_DARK,
+            self.sidebar,
+        )
+        self.update_button.setCheckable(False)
+        self.update_button.setToolTip("Check for ClipLM updates")
+        self.update_button.clicked.connect(self.updateRequested.emit)
+
+        self.update_badge = QFrame(self.update_button)
+        self.update_badge.setObjectName("update_badge")
+        self.update_badge.setFixedSize(9, 9)
+        self.update_badge.move(36, 3)
+        self.update_badge.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.update_badge.setStyleSheet("""
+            QFrame#update_badge {
+                background: #f59e0b;
+                border: 2px solid #fbfdff;
+                border-radius: 4px;
+            }
+        """)
+        self.update_badge.hide()
+        self.bottom_tabs_layout.addWidget(
+            self.update_button,
+            0,
+            Qt.AlignHCenter,
+        )
         sidebar_layout.addLayout(self.bottom_tabs_layout)
 
         self.content_shell = QFrame()
@@ -56,19 +106,23 @@ class SidebarTabWidget(QWidget):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
+
         self.stack = QStackedWidget()
         self.stack.setObjectName("sidebar_pages")
         content_layout.addWidget(self.stack)
 
+        self.search_shortcut = QShortcut(QKeySequence("/"), self)
+        self.search_shortcut.setContext(Qt.WindowShortcut)
+        self.search_shortcut.activated.connect(self._focus_current_page_search)
+        self.search_shortcut.setEnabled(False)
+
         root.addWidget(self.sidebar)
         root.addWidget(self.content_shell, 1)
 
-        # Give the stacked content its own solid surface so hidden pages do not
-        # visually bleed through when switching tabs.
         self._base_stylesheet = """
             QFrame#sidebar_tabs {
                 background: #fbfdff;
-                border-right: 1px solid rgba(30,36,44,0.08);
+                border-right: 1px solid rgba(30, 36, 44, 0.08);
             }
             QFrame#content_shell {
                 background: #f5f7fb;
@@ -84,27 +138,50 @@ class SidebarTabWidget(QWidget):
         icon_dark, icon_light = self._default_icon_for_text(tab_name)
 
         button = SidebarTabButton(display_text, icon_dark, self.sidebar)
-        button.clicked.connect(lambda checked=False, index=len(self._records): self.setCurrentIndex(index))
+        button.clicked.connect(
+            lambda checked=False, index=len(self._records): self.setCurrentIndex(
+                index
+            )
+        )
 
-        # Each tab page gets a dedicated wrapper so the stacked widget always
-        # swaps full-size pages instead of exposing content from another page.
         page = QWidget()
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(0)
         page_layout.addWidget(widget)
 
-        record = _TabRecord(widget=widget, page=page, button=button, text=tab_name, icon=icon_dark, icon_light=icon_light)
+        record = _TabRecord(
+            widget=widget,
+            page=page,
+            button=button,
+            text=tab_name,
+            icon=icon_dark,
+            icon_light=icon_light,
+        )
         self._records.append(record)
         self.stack.addWidget(page)
 
-        target_layout = self.bottom_tabs_layout if self._dock_to_bottom(tab_name) else self.top_tabs_layout
+        target_layout = (
+            self.bottom_tabs_layout
+            if self._dock_to_bottom(tab_name)
+            else self.top_tabs_layout
+        )
         target_layout.addWidget(button, 0, Qt.AlignHCenter)
 
         if self._current_index == -1:
             self.setCurrentIndex(0)
 
         return len(self._records) - 1
+
+    def set_update_available(self, available: bool, version: str = "") -> None:
+        self._available_update_version = version if available else ""
+        self.update_badge.setVisible(available)
+        if available:
+            self.update_button.setToolTip(
+                f"ClipLM {version} is available" if version else "Update available"
+            )
+        else:
+            self.update_button.setToolTip("ClipLM is up to date")
 
     def count(self):
         return len(self._records)
@@ -160,10 +237,32 @@ class SidebarTabWidget(QWidget):
         self._current_index = index
         self.stack.setCurrentWidget(self._records[index].page)
         for button_index, record in enumerate(self._records):
-            record.button.setChecked(button_index == index)
-            record.button.setIcon(record.icon_light if button_index == index else record.icon)
+            is_current = button_index == index
+            record.button.setChecked(is_current)
+            record.button.setIcon(
+                record.icon_light if is_current else record.icon
+            )
             record.button.update()
         self.currentChanged.emit(index)
+        self._update_search_shortcut()
+
+    def _update_search_shortcut(self) -> None:
+        current_widget = self.currentWidget()
+        header = getattr(current_widget, "header", None)
+        self.search_shortcut.setEnabled(
+            callable(getattr(header, "focus_search", None))
+        )
+
+    def _focus_current_page_search(self) -> None:
+        current_widget = self.currentWidget()
+        header = getattr(current_widget, "header", None)
+        if header is None:
+            return
+
+        if header.search_field.hasFocus():
+            header.search_field.insert("/")
+            return
+        header.focus_search()
 
     def setCurrentWidget(self, widget):
         index = self.indexOf(widget)
@@ -171,7 +270,6 @@ class SidebarTabWidget(QWidget):
             self.setCurrentIndex(index)
 
     def setTabPosition(self, position):
-        # Compatibility no-op so App.py can stay almost unchanged.
         return None
 
     def setStyleSheet(self, styleSheet):
@@ -185,13 +283,6 @@ class SidebarTabWidget(QWidget):
             if record.visible:
                 return index
         return -1
-
-    def _parse_add_tab_args(self, *args):
-        if len(args) == 1:
-            return QIcon(), str(args[0])
-        if len(args) == 2:
-            return args[0], str(args[1])
-        raise TypeError("addTab expects (widget, text) or (widget, icon, text)")
 
     def _dock_to_bottom(self, text: str):
         return text.strip().casefold() == "settings"
@@ -208,17 +299,12 @@ class SidebarTabWidget(QWidget):
         return labels.get(text.strip().casefold(), text)
 
     def _default_icon_for_text(self, text: str):
-        key = text.strip().casefold()
-        if key == "clipboard":
-            return CLIP_ICON, CLIP_ICON_LIGHT
-        if key == "favorites":
-            return STAR_ICON, STAR_ICON_LIGHT
-        if key == "notes":
-            return NOTE_ICON, NOTE_ICON_LIGHT
-        if key == "translate":
-            return TRANSLATE_ICON, TRANSLATE_ICON_LIGHT
-        if key == "agent":
-            return AI_ICON, AI_ICON_LIGHT
-        if key == "settings":
-            return SETTINGS_ICON, SETTINGS_ICON_LIGHT
-        return QIcon(), QIcon()
+        icons = {
+            "clipboard": (CLIP_ICON, CLIP_ICON_LIGHT),
+            "favorites": (STAR_ICON, STAR_ICON_LIGHT),
+            "notes": (NOTE_ICON, NOTE_ICON_LIGHT),
+            "translate": (TRANSLATE_ICON, TRANSLATE_ICON_LIGHT),
+            "agent": (AI_ICON, AI_ICON_LIGHT),
+            "settings": (SETTINGS_ICON, SETTINGS_ICON_LIGHT),
+        }
+        return icons.get(text.strip().casefold(), (QIcon(), QIcon()))

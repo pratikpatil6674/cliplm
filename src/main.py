@@ -14,7 +14,8 @@ def main():
         os.environ["QT_QPA_PLATFORM"] = "xcb"
 
     from QtSingleInstanceApp import QtSingleInstanceApp
-    from PySide6.QtCore import Qt
+    from PySide6.QtCore import QCoreApplication, Qt
+    from AppVersion import APP_VERSION
     from resources import APP_ICON
 
     single = QtSingleInstanceApp("cliplm-app")
@@ -36,6 +37,7 @@ def main():
 
     app = QApplication.instance() or QApplication([])
     app.setWindowIcon(APP_ICON)
+    QCoreApplication.setApplicationVersion(APP_VERSION)
 
     from App import App
 

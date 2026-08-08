@@ -1,5 +1,7 @@
 from pathlib import Path
+from datetime import datetime, timezone
 import logging
+import os
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QTabWidget, QListWidget, QPushButton, QLabel,
     QHBoxLayout, QTextEdit, QListWidgetItem, QDialog, QCheckBox, QScrollArea
@@ -12,9 +14,9 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 from PySide6.QtWidgets import QGraphicsOpacityEffect
 
 from PySide6.QtGui import QCursor
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QColor, QMouseEvent, QAction
+from PySide6.QtGui import QDesktopServices, QIcon, QKeySequence, QShortcut, QColor, QMouseEvent, QAction
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtCore import QCoreApplication, QStandardPaths, QDir, QSaveFile, QByteArray
+from PySide6.QtCore import QCoreApplication, QStandardPaths, QDir, QSaveFile, QByteArray, QUrl
 import qt_material
 import asyncio
 from googletrans import Translator
@@ -41,6 +43,17 @@ from AIPromptSidebarTab import AIPromptSidebarTab
 from AIPresenter import AIPresenter
 from PromptsStore import PromptsStore
 from AIService import LLMService
+from AppVersion import APP_VERSION
+from UpdateDialog import UpdateDialog
+from UpdateService import (
+    DOWNLOAD_PAGE_URL,
+    UpdateService,
+    UpdateResult,
+    cached_update_result,
+    current_platform_target,
+    is_update_check_due,
+    parse_update_manifest,
+)
 from LoggingSetup import configure_app_logger
 from SettingsStore import SettingsStore
 from SettingsTab import SettingsTab
@@ -67,6 +80,16 @@ class App(QWidget):
                     "destination_language": "en",
                     "api": "google",
                 },
+                "updates": {
+                    "check_automatically": True,
+                    "channel": "stable",
+                    "last_checked_at": "",
+                    "last_known_version": "",
+                    "last_target": "",
+                    "last_generated_at": "",
+                    "last_summary": "",
+                    "last_available_packages": [],
+                },
             },
         )
         self.settings = self.settings_store.get()
@@ -88,6 +111,7 @@ class App(QWidget):
         qt_material.apply_stylesheet(self, theme='light_blue.xml')
         self._setup_ui()
         self._set_styles()
+        self._setup_updates()
 
         self.setup_tray_icon()
 
@@ -207,11 +231,133 @@ class App(QWidget):
         """)
     
 
+
+    def _setup_updates(self) -> None:
+        self.update_service = UpdateService(APP_VERSION, self)
+        self.update_dialog = UpdateDialog(APP_VERSION, self)
+        self._last_update_result = cached_update_result(
+            APP_VERSION,
+            self.settings.get("updates", {}),
+        )
+        self._debug_update_enabled = False
+
+        self.tabs.updateRequested.connect(self._show_updates_dialog)
+        self.update_dialog.checkRequested.connect(self.update_service.check)
+        self.update_dialog.downloadRequested.connect(self._open_download_page)
+        self.update_service.checkingStarted.connect(self.update_dialog.set_checking)
+        self.update_service.checkSucceeded.connect(self._handle_update_success)
+        self.update_service.checkFailed.connect(self._handle_update_failure)
+
+        if self._last_update_result is not None:
+            self.update_dialog.set_result(self._last_update_result)
+            self.tabs.set_update_available(
+                self._last_update_result.available,
+                self._last_update_result.latest_version,
+            )
+
+        self._debug_update_enabled = self._apply_debug_update_state()
+        QTimer.singleShot(3_000, self._check_updates_automatically)
+
+    def _show_updates_dialog(self) -> None:
+        if self.update_service.is_checking:
+            self.update_dialog.set_checking()
+        elif self.update_service.last_error:
+            self.update_dialog.set_error(self.update_service.last_error)
+        elif self._last_update_result is not None:
+            self.update_dialog.set_result(self._last_update_result)
+        else:
+            self.update_dialog.set_idle()
+
+        self.update_dialog.show()
+        self.update_dialog.raise_()
+        self.update_dialog.activateWindow()
+
+        if (
+            self._last_update_result is None
+            and not self.update_service.is_checking
+            and not self.update_service.last_error
+        ):
+            self.update_service.check()
+
+    def _check_updates_automatically(self) -> None:
+        if self._debug_update_enabled:
+            return
+        update_settings = self.settings.get("updates", {})
+        if not update_settings.get("check_automatically", True):
+            return
+        if is_update_check_due(update_settings.get("last_checked_at", "")):
+            self.update_service.check()
+
+    def _handle_update_success(self, result: UpdateResult) -> None:
+        self._last_update_result = result
+        self.update_dialog.set_result(result)
+        self.tabs.set_update_available(
+            result.available,
+            result.latest_version,
+        )
+        checked_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        checked_at = checked_at.replace("+00:00", "Z")
+        self.settings = self.settings_store.update(
+            {
+                "updates": {
+                    "last_checked_at": checked_at,
+                    "last_known_version": result.latest_version,
+                    "last_target": result.target,
+                    "last_generated_at": result.generated_at,
+                    "last_summary": result.summary,
+                    "last_available_packages": list(result.available_packages),
+                }
+            }
+        )
+
+    def _handle_update_failure(self, message: str) -> None:
+        self.update_dialog.set_error(message)
+
+    def _open_download_page(self) -> None:
+        QDesktopServices.openUrl(QUrl(DOWNLOAD_PAGE_URL))
+
+    def _apply_debug_update_state(self) -> bool:
+        version = os.environ.get("CLIPLM_DEBUG_UPDATE_VERSION", "").strip()
+        if not version:
+            return False
+
+        try:
+            target = current_platform_target()
+            result = parse_update_manifest(
+                {
+                    "schema_version": 1,
+                    "product": "cliplm",
+                    "channel": "stable",
+                    "generated_at": "development preview",
+                    "summary": "Development preview of the ClipLM update dialog.",
+                    "targets": {
+                        target: {
+                            "recommended_version": version,
+                            "packages": {},
+                        }
+                    },
+                },
+                APP_VERSION,
+                target,
+            )
+        except Exception as error:
+            logging.getLogger(__name__).warning("Invalid debug update: %s", error)
+            return False
+
+        self._last_update_result = result
+        self.update_dialog.set_result(result)
+        self.tabs.set_update_available(
+            result.available,
+            result.latest_version,
+        )
+        return True
+
     def ensure_app_dirs(self):
         APP_NAME = "ClipLM"
         QCoreApplication.setOrganizationName(APP_NAME)
         QCoreApplication.setApplicationName(APP_NAME)
 
+        QCoreApplication.setApplicationVersion(APP_VERSION)
         config_dir = QStandardPaths.writableLocation(QStandardPaths.ConfigLocation)
         config_dir = str(Path(config_dir) / APP_NAME)
         data_dir = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
