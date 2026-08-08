@@ -40,4 +40,16 @@ class TabShortcuts:
         if not matches:
             return
 
+        current_index = self.tab_widget.currentIndex()
+        if current_index in matches:
+            current_widget = self.tab_widget.currentWidget()
+            trigger_primary_action = getattr(
+                current_widget,
+                "trigger_primary_action",
+                None,
+            )
+            if callable(trigger_primary_action):
+                trigger_primary_action()
+                return
+
         self.tab_widget.setCurrentIndex(random.choice(matches))

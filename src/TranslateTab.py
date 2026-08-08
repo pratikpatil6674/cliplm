@@ -172,6 +172,9 @@ class TranslateTab(QWidget):
         """
         )
 
+    def trigger_primary_action(self):
+        self.translate_button.click()
+
     def _connect_scrollbars(self):
         self.source_scroll.verticalScrollBar().valueChanged.connect(
             lambda value: self._sync_scrollbars(
