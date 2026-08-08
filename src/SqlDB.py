@@ -325,14 +325,19 @@ class ClipboardTable:
     
     def list_clips(self, limit: int = 10000, offset: int = 0, order_by: str = "created_at ASC") -> List[Dict[str, Any]]:
         cur = self._execute(f"SELECT clip_id, content_type, content_size, preview_text, thumbnail, created_at, source_app, file_name FROM {self.table} ORDER BY {order_by} LIMIT ? OFFSET ?;", (limit, offset))
+        return self._rows_to_previews(cur.fetchall())
+
+    @staticmethod
+    def _rows_to_previews(rows) -> List[Dict[str, Any]]:
+        """Map database rows to the lightweight shape expected by card views."""
         result = []
-        for r in cur.fetchall():
-            d = dict(r)
-            if d["content_type"] == MimeType.IMAGE:
-                d["content"] = d["thumbnail"]
-            elif d["content_type"] == MimeType.TEXT or d["content_type"] == MimeType.HTML:
-                d["content"] = d["preview_text"]
-            result.append(d)
+        for row in rows:
+            record = dict(row)
+            if record["content_type"] == MimeType.IMAGE:
+                record["content"] = record["thumbnail"]
+            elif record["content_type"] in (MimeType.TEXT, MimeType.HTML):
+                record["content"] = record["preview_text"]
+            result.append(record)
         return result
 
     def delete_clip(self, clip_id: str, remove_file_from_disk: bool = True) -> bool:
@@ -398,18 +403,56 @@ class ClipboardTable:
             return count
 
     def search(self, query: str, limit: int = 100) -> List[Dict[str, Any]]:
-        # Search via FTS for clip_id match then filter by presence in this table
-        cur = self._execute("SELECT f.clip_id FROM clip_fts f WHERE clip_fts MATCH ? LIMIT ?;", (query, limit))
-        ids = [r["clip_id"] for r in cur.fetchall()]
-        if not ids:
-            # fallback LIKE in this table
-            q = f"%{query}%"
-            cur = self._execute(f"SELECT * FROM {self.table} WHERE preview_text LIKE ? OR file_name LIKE ? ORDER BY created_at DESC LIMIT ?;", (q, q, limit))
-            return [dict(r) for r in cur.fetchall()]
-        # Fetch only those ids that exist in this table (keeps buckets independent)
-        placeholders = ",".join("?" for _ in ids)
-        cur = self._execute(f"SELECT * FROM {self.table} WHERE clip_id IN ({placeholders}) ORDER BY created_at DESC LIMIT ?;", tuple(ids) + (limit,))
-        return [dict(r) for r in cur.fetchall()]
+        query = query.strip()
+        if not query:
+            return self.list_clips(limit=limit)
+
+        rows = []
+        terms = [
+            term.replace('"', '""')
+            for term in query.split()
+            if term
+        ]
+        if terms:
+            # Quote user terms so FTS operators and punctuation cannot change
+            # query semantics. The suffix keeps ordinary type-ahead useful.
+            fts_query = " AND ".join(f'"{term}"*' for term in terms)
+            try:
+                cur = self._execute(
+                    f"""
+                    SELECT c.clip_id, c.content_type, c.content_size,
+                           c.preview_text, c.thumbnail, c.created_at,
+                           c.source_app, c.file_name
+                    FROM clip_fts
+                    JOIN {self.table} AS c ON c.clip_id = clip_fts.clip_id
+                    WHERE clip_fts MATCH ?
+                    ORDER BY c.created_at ASC
+                    LIMIT ?;
+                    """,
+                    (fts_query, limit),
+                )
+                rows = cur.fetchall()
+            except sqlite3.OperationalError:
+                logger.warning("FTS query failed; using substring search", exc_info=True)
+
+        if not rows:
+            like_query = f"%{query}%"
+            cur = self._execute(
+                f"""
+                SELECT clip_id, content_type, content_size, preview_text,
+                       thumbnail, created_at, source_app, file_name
+                FROM {self.table}
+                WHERE full_text LIKE ? OR preview_text LIKE ?
+                      OR file_name LIKE ? OR source_app LIKE ?
+                      OR window_title LIKE ? OR tags LIKE ?
+                ORDER BY created_at ASC
+                LIMIT ?;
+                """,
+                (like_query,) * 6 + (limit,),
+            )
+            rows = cur.fetchall()
+
+        return self._rows_to_previews(rows)
 
     # ---------------- Move row ----------------
     def move_row_to(self, dest_table: str, clip_id: str) -> bool:
@@ -540,12 +583,27 @@ class NotesTable:
         return cur.rowcount > 0
 
     def list_notes(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-        cur = self._execute("SELECT note_id, content_type, title, preview_text, created_at, modified_at FROM text_notes ORDER BY modified_at DESC LIMIT ? OFFSET ?;", (limit, offset))
+        cur = self._execute("SELECT note_id, content_type, title, preview_text, created_at, modified_at FROM text_notes ORDER BY modified_at ASC LIMIT ? OFFSET ?;", (limit, offset))
         return [dict(r) for r in cur.fetchall()]
 
     def search_notes(self, query: str, limit: int = 100) -> List[Dict[str, Any]]:
+        query = query.strip()
+        if not query:
+            return self.list_notes(limit=limit)
+
         q = f"%{query}%"
-        cur = self._execute("SELECT * FROM text_notes WHERE title LIKE ? OR main_text LIKE ? OR preview_text LIKE ? LIMIT ?;", (q, q, q, limit))
+        cur = self._execute(
+            """
+            SELECT note_id, content_type, title, preview_text,
+                   created_at, modified_at
+            FROM text_notes
+            WHERE title LIKE ? OR main_text LIKE ?
+                  OR preview_text LIKE ? OR tags LIKE ?
+            ORDER BY modified_at ASC
+            LIMIT ?;
+            """,
+            (q, q, q, q, limit),
+        )
         return [dict(r) for r in cur.fetchall()]
 
 

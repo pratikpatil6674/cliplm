@@ -58,11 +58,13 @@ class ManualCard(QFrame):
         # icon_col.setSpacing(8)
         icon_col.addStretch()
 
-        icon_size = QSize(18, 18)  # design-scale icon size
+        icon_size = QSize(20, 20)
+        button_size = QSize(30, 30)
 
         self.copy_btn = QToolButton()
         self.copy_btn.setIcon(COPY_ICON_LIGHT)
         self.copy_btn.setIconSize(icon_size)
+        self.copy_btn.setFixedSize(button_size)
         self.copy_btn.setToolTip("Copy")
         self.copy_btn.setAutoRaise(True)  # flat look
         icon_col.addWidget(self.copy_btn)
@@ -71,6 +73,7 @@ class ManualCard(QFrame):
         self.delete_btn = QToolButton()
         self.delete_btn.setIcon(DELETE_ICON_LIGHT)
         self.delete_btn.setIconSize(icon_size)
+        self.delete_btn.setFixedSize(button_size)
         self.delete_btn.setToolTip("Delete")
         self.delete_btn.setAutoRaise(True)
         icon_col.addWidget(self.delete_btn)
@@ -79,7 +82,7 @@ class ManualCard(QFrame):
 
         self.delete_button_placeholder = QToolButton()
         self.delete_button_placeholder.setObjectName("placeholder")
-        self.delete_button_placeholder.setFixedSize(icon_size)
+        self.delete_button_placeholder.setFixedSize(button_size)
         self.delete_button_placeholder.hide()
         icon_col.addWidget(self.delete_button_placeholder)
 
@@ -99,6 +102,7 @@ class ManualCard(QFrame):
         self.edit_btn = QToolButton()
         self.edit_btn.setIcon(EDIT_ICON_LIGHT)
         self.edit_btn.setIconSize(icon_size)
+        self.edit_btn.setFixedSize(button_size)
         self.edit_btn.setToolTip("Edit")
         self.edit_btn.setAutoRaise(True)
 
@@ -130,6 +134,7 @@ class ManualCard(QFrame):
             QToolButton {
                 background: transparent;
                 border: none;
+                padding: 0;
             }
             QToolButton:hover {
                 background: #e0e0e0;

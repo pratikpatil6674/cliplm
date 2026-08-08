@@ -18,6 +18,12 @@ class FavoritesPresenter():
         self.clipboard_service = clipboard_service
         self.model = model 
         self.view = view
+        self.view.searchRequested.connect(self.handle_search_request)
+
+    def handle_search_request(self, query: str):
+        query = query.strip()
+        clips = self.model.search(query) if query else self.model.list_clips()
+        self.view.populate_fav_list(clips)
 
     def handle_copy_request(self, database_id):
         db_row = self.model.get_clip(database_id, full_content=True)
@@ -43,8 +49,10 @@ class FavoritesPresenter():
         if clip is None:
             logger.warning(f"Clip with id {id} not found in favourites db table")
             return
+        if self.view.current_search_query():
+            self.handle_search_request(self.view.current_search_query())
+            return
         clip_data = ClipData.from_database(clip)
-        # breakpoint()
         self.view.add_list_item(clip['clip_id'], clip_data)
 
     def handle_delete_request(self, id):
@@ -52,5 +60,4 @@ class FavoritesPresenter():
         self.view.delete_list_item(id)
         
     def refresh_view(self):
-        clips = self.model.list_clips()
-        self.view.populate_fav_list(clips)
+        self.handle_search_request("")

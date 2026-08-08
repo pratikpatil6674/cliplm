@@ -22,11 +22,17 @@ class ClipboardPresenter(IClipboardPresenter):
         self.model = model 
         self.view = view
         self.view.clearRequested.connect(self.clear_clipboard)
+        self.view.searchRequested.connect(self.handle_search_request)
         self.show_window_callback = show_window_callback
         self.translate_presenter = None
         self.ai_presenter = None
         self._last_signature = None
         self.t1 = time.perf_counter()
+
+    def handle_search_request(self, query: str):
+        query = query.strip()
+        clips = self.model.search(query) if query else self.model.list_clips()
+        self.view.populate_clipboard_list(clips)
 
     def handle_copy_request(self, database_id):
         db_row = self.model.get_clip(database_id, full_content=True)
@@ -125,10 +131,13 @@ class ClipboardPresenter(IClipboardPresenter):
         )
 
         if clip_data.mime_type and clip_id:
-            db_row = self.model.get_clip(clip_id, full_content=False)
-            clip_data = ClipData.from_database(db_row)
-            self.view.add_list_item(clip_id, clip_data)
-            clip_data.delete_full_data()
+            if self.view.current_search_query():
+                self.handle_search_request(self.view.current_search_query())
+            else:
+                db_row = self.model.get_clip(clip_id, full_content=False)
+                clip_data = ClipData.from_database(db_row)
+                self.view.add_list_item(clip_id, clip_data)
+                clip_data.delete_full_data()
             
 
     def clear_clipboard(self):
@@ -136,5 +145,4 @@ class ClipboardPresenter(IClipboardPresenter):
         self.view.clear_list()
 
     def refresh_view(self):
-        clips = self.model.list_clips()
-        self.view.populate_clipboard_list(clips)
+        self.handle_search_request("")
