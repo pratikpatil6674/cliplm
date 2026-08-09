@@ -21,5 +21,10 @@
     <file>icons/translate_light.svg</file>
     <file>icons/star_light.svg</file>
     <file>icons/ai_light.svg</file>
+
+    <file>icons/sync_dark.svg</file>
+    <file>icons/sync_light.svg</file>
+    <file>icons/add_dark.svg</file>
+    <file>icons/paste_dark.svg</file>
   </qresource>
 </RCC>

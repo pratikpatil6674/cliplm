@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QMimeData, QPoint, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -9,6 +10,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMessageBox,
+    QMenu,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -24,19 +26,83 @@ from PromptsStore import PromptsStore
 from resources import ADD_ICON_DARK, COPY_ICON_DARK, PASTE_ICON_DARK, SYNC_ICON_DARK
 
 
+class PromptListRow(QWidget):
+    editRequested = Signal(str)
+    activationRequested = Signal(str)
+    deleteRequested = Signal(str)
+
+    def __init__(self, prompt_name: str, parent=None):
+        super().__init__(parent)
+        self.prompt_name = prompt_name
+        self.setObjectName("prompt_list_row")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(7, 0, 2, 0)
+        layout.setSpacing(2)
+
+        label = QLabel(prompt_name)
+        label.setObjectName("prompt_list_name")
+        label.setToolTip(prompt_name)
+        label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        layout.addWidget(label, 1)
+
+        self.actions_button = QToolButton()
+        self.actions_button.setObjectName("prompt_actions_button")
+        self.actions_button.setText("...")
+        self.actions_button.setCursor(Qt.PointingHandCursor)
+        self.actions_button.setFocusPolicy(Qt.NoFocus)
+        self.actions_button.clicked.connect(self._show_actions_menu)
+        self.actions_button.hide()
+        layout.addWidget(self.actions_button)
+
+    def enterEvent(self, event):
+        self.actions_button.show()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.actions_button.hide()
+        super().leaveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.activationRequested.emit(self.prompt_name)
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+
+    def _show_actions_menu(self):
+        menu = QMenu(self)
+        menu.setObjectName("prompt_actions_menu")
+        edit_action = menu.addAction("Edit")
+        delete_action = menu.addAction("Delete")
+        selected_action = menu.exec(
+            self.actions_button.mapToGlobal(QPoint(0, self.actions_button.height()))
+        )
+        if selected_action == edit_action:
+            self.editRequested.emit(self.prompt_name)
+        elif selected_action == delete_action:
+            self.deleteRequested.emit(self.prompt_name)
+
+
 class AIPromptSidebarTab(QWidget):
     promptExecutionRequested = Signal()
     BASE_MAX_INPUT_PREVIEW_HEIGHT = 220
     MAX_INPUT_PREVIEW_RATIO = 0.35
 
-    def __init__(self, prompt_store: PromptsStore | None = None):
+    def __init__(
+        self,
+        prompt_store: PromptsStore | None = None,
+        clipboard_service=None,
+    ):
         super().__init__()
         self.prompt_store = prompt_store
+        self.clipboard_service = clipboard_service
         self.prompt_config = {}
         self._ai_enabled = True
         self._output_actions_visible = False
+        self.setObjectName("ai_prompt_tab")
         self._setup_ui()
-        self._setup_styles()
         self.reload_prompts(show_feedback=False)
 
     def _setup_ui(self):
@@ -49,7 +115,7 @@ class AIPromptSidebarTab(QWidget):
         sidebar.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         sidebar.setFixedWidth(180)
         sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(10, 10, 0, 10)
+        sidebar_layout.setContentsMargins(10, 12, 10, 12)
         sidebar_layout.setSpacing(6)
 
         title_row = QHBoxLayout()
@@ -63,7 +129,7 @@ class AIPromptSidebarTab(QWidget):
         self.open_prompts_store_button.setObjectName("open_prompts_store_button")
         self.open_prompts_store_button.setText("+")
         self.open_prompts_store_button.setIcon(ADD_ICON_DARK)
-        self.open_prompts_store_button.setToolTip("Add/Edit prompts")
+        self.open_prompts_store_button.setToolTip("Add prompt")
         self.open_prompts_store_button.setCursor(Qt.PointingHandCursor)
         self.open_prompts_store_button.clicked.connect(self._open_prompt_editor)
         title_row.addWidget(self.open_prompts_store_button)
@@ -88,8 +154,8 @@ class AIPromptSidebarTab(QWidget):
         content = QFrame()
         content.setObjectName("card")
         content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(10, 10, 10, 10)
-        content_layout.setSpacing(6)
+        content_layout.setContentsMargins(14, 12, 14, 12)
+        content_layout.setSpacing(7)
 
         self.prompt_label = QLabel("Prompt")
         self.prompt_label.setObjectName("section_label")
@@ -99,6 +165,13 @@ class AIPromptSidebarTab(QWidget):
         self.ai_input_prompt.setObjectName("ai_input_prompt")
         self.ai_input_prompt.setTextFormat(Qt.PlainText)
         self.ai_input_prompt.setWordWrap(True)
+        prompt_size_policy = QSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Fixed,
+        )
+        prompt_size_policy.setHeightForWidth(True)
+        self.ai_input_prompt.setSizePolicy(prompt_size_policy)
+        self.ai_input_prompt.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         content_layout.addWidget(self.ai_input_prompt)
 
         self.input_label = QLabel("Input")
@@ -300,18 +373,76 @@ class AIPromptSidebarTab(QWidget):
         )
 
     def _open_prompt_editor(self):
+        self._edit_prompt()
+
+    def _edit_prompt(self, prompt_name: str | None = None):
         if not self.prompt_store:
+            return
+        if prompt_name is not None and prompt_name not in self.prompt_config:
             return
 
         self._ensure_prompt_file_exists()
-        dialog = PromptEditorDialog(self.prompt_config, self)
+        dialog = PromptEditorDialog(
+            self.prompt_config,
+            self,
+            editing_prompt_name=prompt_name,
+        )
         if dialog.exec():
             try:
                 self.prompt_store.save_prompts(dialog.get_prompt_config())
                 self.reload_prompts(show_feedback=False)
-                self.ai_output_text.setText(f"Saved {len(self.prompt_config)} prompt(s).")
+                saved_name = dialog.get_saved_prompt_name()
+                self._select_prompt_item(saved_name)
+                action = "Updated" if prompt_name else "Added"
+                self.ai_output_text.setText(f"{action} '{saved_name}'.")
             except Exception as exc:
                 self.show_error("Prompt Error", str(exc))
+
+    def _delete_prompt(self, prompt_name: str):
+        if not self.prompt_store or prompt_name not in self.prompt_config:
+            return
+
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("Delete prompt")
+        message_box.setText(f"Delete '{prompt_name}'?")
+        message_box.setInformativeText("This action cannot be undone.")
+        message_box.setIcon(QMessageBox.Warning)
+
+        delete_button = message_box.addButton(
+            "Delete prompt",
+            QMessageBox.DestructiveRole,
+        )
+        cancel_button = message_box.addButton("Cancel", QMessageBox.RejectRole)
+        message_box.setDefaultButton(cancel_button)
+        delete_button.setIcon(QIcon())
+        cancel_button.setIcon(QIcon())
+
+        delete_button.setProperty("role", "danger")
+        cancel_button.setProperty("role", "secondary")
+        for button in (delete_button, cancel_button):
+            button.style().unpolish(button)
+            button.style().polish(button)
+
+        message_box.exec()
+        if message_box.clickedButton() is not delete_button:
+            return
+
+        current_item = self.prompts_list.currentItem()
+        selected_name = (
+            current_item.data(Qt.UserRole) if current_item is not None else None
+        )
+        updated_config = dict(self.prompt_config)
+        del updated_config[prompt_name]
+        try:
+            self.prompt_store.save_prompts(updated_config)
+            self.reload_prompts(show_feedback=False)
+            if selected_name == prompt_name:
+                self.ai_input_prompt.clear()
+            else:
+                self._select_prompt_item(selected_name)
+            self.ai_output_text.setText(f"Deleted '{prompt_name}'.")
+        except Exception as exc:
+            self.show_error("Prompt Error", str(exc))
 
     def _normalize_prompt_name(self, prompt_name: str) -> str:
         return " ".join(prompt_name.split()).casefold()
@@ -343,10 +474,27 @@ class AIPromptSidebarTab(QWidget):
     def _populate_prompt_list(self):
         self.prompts_list.clear()
         for prompt_name in self.prompt_config.keys():
-            self.prompts_list.addItem(QListWidgetItem(prompt_name))
+            item = QListWidgetItem()
+            item.setData(Qt.UserRole, prompt_name)
+            item.setSizeHint(QSize(0, 30))
+            row = PromptListRow(prompt_name, self.prompts_list)
+            row.activationRequested.connect(self._on_prompt_row_activated)
+            row.editRequested.connect(self._edit_prompt)
+            row.deleteRequested.connect(self._delete_prompt)
+            self.prompts_list.addItem(item)
+            self.prompts_list.setItemWidget(item, row)
 
         if self.prompts_list.count() > 0:
             self.prompts_list.setCurrentRow(0)
+
+    def _select_prompt_item(self, prompt_name: str | None):
+        if not prompt_name:
+            return
+        for row in range(self.prompts_list.count()):
+            item = self.prompts_list.item(row)
+            if item.data(Qt.UserRole) == prompt_name:
+                self.prompts_list.setCurrentItem(item)
+                return
 
     def reload_prompts(self, show_feedback: bool = True):
         if not self.prompt_store:
@@ -374,7 +522,14 @@ class AIPromptSidebarTab(QWidget):
             self.ai_output_text.setText(f"Loaded {len(self.prompt_config)} prompt(s).")
 
     def _on_prompt_clicked(self, item: QListWidgetItem):
-        prompt_name = item.text()
+        prompt_name = item.data(Qt.UserRole)
+        self._execute_prompt(prompt_name)
+
+    def _on_prompt_row_activated(self, prompt_name: str):
+        self._select_prompt_item(prompt_name)
+        self._execute_prompt(prompt_name)
+
+    def _execute_prompt(self, prompt_name: str):
         prompt_text = self.prompt_config.get(prompt_name, {}).get("prompt", "")
         self.set_prompt(prompt_text)
         self.promptExecutionRequested.emit()
@@ -393,21 +548,34 @@ class AIPromptSidebarTab(QWidget):
         if current_item is None:
             return ""
 
-        prompt_name = current_item.text()
+        prompt_name = current_item.data(Qt.UserRole)
         return self.prompt_config.get(prompt_name, {}).get("prompt", "")
 
     def set_prompt(self, prompt):
         self.ai_input_prompt.setText(prompt)
+        self.ai_input_prompt.updateGeometry()
+        QTimer.singleShot(0, self._update_prompt_height)
 
     def set_input_data(self, input_data_widget):
         self.input_data_placeholder.set_widget(input_data_widget)
         self._update_input_placeholder_height()
 
     def _handle_copy_output_click(self, text: str):
-        _ = text
+        self._set_output_clipboard(text, trigger_paste=False)
 
     def _handle_paste_output_click(self, text: str):
-        _ = text
+        self._set_output_clipboard(text, trigger_paste=True)
+
+    def _set_output_clipboard(self, text: str, trigger_paste: bool):
+        if not self.clipboard_service or not text:
+            return
+
+        mime_data = QMimeData()
+        mime_data.setText(text)
+        self.clipboard_service.set_clipboard(
+            mime_data,
+            trigger_paste=trigger_paste,
+        )
 
     def eventFilter(self, watched, event):
         if not all(
@@ -454,7 +622,17 @@ class AIPromptSidebarTab(QWidget):
         # Recompute the preview height when the tab is resized so the cap grows
         # with the available space instead of staying stuck at a fixed value.
         self._update_input_placeholder_height()
+        QTimer.singleShot(0, self._update_prompt_height)
         super().resizeEvent(event)
+
+    def _update_prompt_height(self):
+        prompt_width = self.ai_input_prompt.width()
+        if prompt_width <= 0:
+            return
+
+        required_height = self.ai_input_prompt.heightForWidth(prompt_width)
+        if required_height > 0 and self.ai_input_prompt.height() != required_height:
+            self.ai_input_prompt.setFixedHeight(required_height)
 
     def _input_preview_height_cap(self):
         # Let the cap scale with the current tab height, while keeping a sane

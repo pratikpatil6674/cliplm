@@ -10,3 +10,8 @@ prime
 overlay
 .craft
 stage
+.env
+dist
+snap
+*.bin
+*.snap

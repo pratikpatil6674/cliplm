@@ -8,12 +8,12 @@ dependencies = [
     "googletrans>=4.0.2",
     "nuitka[onefile]>=4.0.8",
     "openai>=2.8.1",
+    "packaging>=25.0",
     "pyautogui>=0.9.54",
     "pyinstaller>=6.16.0",
     "pynput>=1.8.1",
     "pyside6>=6.10.0",
     "qasync>=0.28.0",
-    "qt-material>=2.17",
 ]
 
 [dependency-groups]
