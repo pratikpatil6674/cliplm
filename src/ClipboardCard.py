@@ -33,7 +33,6 @@ class ClipboardCard(QFrame):
         self.clip_data = clip_data
         
         self._setup_ui()
-        self._setup_styles()
         self._connect_signals()
         
     def sizeHint(self):
@@ -42,12 +41,15 @@ class ClipboardCard(QFrame):
         return hint
 
     def _setup_ui(self):
+        self.setObjectName("clipboard_card")
         self.setFrameShape(QFrame.StyledPanel)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setMinimumHeight(60)
         self.setMaximumHeight(self.MAX_CARD_HEIGHT)
         # list_item_widget = QWidget()
         layout = QHBoxLayout(self)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 9, 12, 9)
+        layout.setSpacing(10)
         # outer_layout.setAlignment(Qt.AlignTop)  # Align content to the top
         # layout.setContentsMargins(0, 0, 0, 0)
         buttons_layout = QVBoxLayout()
@@ -56,8 +58,9 @@ class ClipboardCard(QFrame):
         # inner_layout.setContentsMargins(0, 0, 0, 0)
         # inner_layout.setSpacing(0)
         
-        button_size = 15
+        button_size = 28
         self.fav_button = QPushButton()
+        self.fav_button.setObjectName("card_action")
         self.fav_button.setIcon(STAR_ICON)
         self.fav_button.setCheckable(True)
         self.fav_button.setFixedSize(button_size, button_size)
@@ -65,6 +68,7 @@ class ClipboardCard(QFrame):
         buttons_layout.addStretch()
 
         self.copy_button = QPushButton()
+        self.copy_button.setObjectName("card_action")
         self.copy_button.setIcon(COPY_ICON_LIGHT)
         self.copy_button.setFixedSize(button_size, button_size)
         buttons_layout.addWidget(self.copy_button)
@@ -78,7 +82,14 @@ class ClipboardCard(QFrame):
         # self.text_field.setMaximumHeight(self.MAX_CARD_HEIGHT - 30)  # allow padding
 
         self.clip_widget = self.clip_data.create_preview_widget(max_height=self.MAX_CARD_HEIGHT - 30)
-        layout.addWidget(self.clip_widget, alignment=Qt.AlignmentFlag.AlignVCenter)
+        preview_vertical_policy = self.clip_widget.sizePolicy().verticalPolicy()
+        self.clip_widget.setSizePolicy(QSizePolicy.Ignored, preview_vertical_policy)
+        self.clip_widget.setMinimumWidth(0)
+        layout.addWidget(
+            self.clip_widget,
+            1,
+            alignment=Qt.AlignmentFlag.AlignVCenter,
+        )
 
     def _setup_styles(self): 
         # for button in [self.fav_button, self.copy_button]:

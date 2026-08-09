@@ -154,7 +154,6 @@ class ClipData:
             return obj
         return cls(mime_type, database_id=db_row.get('clip_id'))
     
-
     def is_text_like(self) -> bool:
         return self.mime_type in (MimeType.TEXT, MimeType.HTML)
     
@@ -181,6 +180,7 @@ class ClipData:
         # default lightweight previews using QLabel
         if self.mime_type == MimeType.IMAGE:
             lbl = QLabel()
+            lbl.setObjectName("clip_preview")
             if self.data is not None:
                 pix = QPixmap.fromImage(self.data)
                 # lbl.setPixmap(pix.scaledToHeight(max_height, Qt.SmoothTransformation))
@@ -194,6 +194,7 @@ class ClipData:
 
         # TEXT / HTML / URLS / OTHER -> textual preview
         lbl = QLabel("temp")
+        lbl.setObjectName("clip_preview")
         if self.mime_type == MimeType.HTML:
             lbl.setText(self.data)
             lbl.setTextFormat(Qt.RichText)

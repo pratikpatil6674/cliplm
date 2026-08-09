@@ -21,6 +21,7 @@ class UpdateDialog(QDialog):
 
     def __init__(self, current_version: str, parent: QWidget | None = None):
         super().__init__(parent)
+        self.setObjectName("update_dialog")
         self.current_version = current_version
         self.setWindowTitle("ClipLM updates")
         self.setModal(False)
@@ -28,17 +29,12 @@ class UpdateDialog(QDialog):
         self.setMaximumWidth(560)
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         self._setup_ui()
-        self._set_styles()
         self.set_idle()
 
     def _setup_ui(self) -> None:
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 12, 14, 12)
         root.setSpacing(8)
-
-        heading = QLabel("Updates")
-        heading.setObjectName("update_dialog_heading")
-        root.addWidget(heading)
 
         self.status_card = QFrame()
         self.status_card.setObjectName("update_status_card")
@@ -129,7 +125,7 @@ class UpdateDialog(QDialog):
         return card, value_widget
 
     def set_idle(self) -> None:
-        self._set_pill("NOT CHECKED", "#e9edf4", "#536174")
+        self._set_pill("NOT CHECKED", "idle")
         self.status_title.setText("Check for ClipLM updates")
         self.latest_value.setText("Not checked")
         self.details_label.setText(
@@ -140,7 +136,7 @@ class UpdateDialog(QDialog):
         self._set_checking(False)
 
     def set_checking(self) -> None:
-        self._set_pill("CHECKING", "#e8f1ff", "#245ea9")
+        self._set_pill("CHECKING", "checking")
         self.status_title.setText("Checking for updates...")
         self.latest_value.setText("Checking...")
         self.details_label.setText(
@@ -155,7 +151,7 @@ class UpdateDialog(QDialog):
         self.latest_value.setText(result.latest_version)
 
         if result.available:
-            self._set_pill("UPDATE AVAILABLE", "#fff1d6", "#9a5700")
+            self._set_pill("UPDATE AVAILABLE", "available")
             self.status_title.setText(
                 f"ClipLM {result.latest_version} is available"
             )
@@ -164,7 +160,7 @@ class UpdateDialog(QDialog):
                 "choose the installer for this computer."
             )
         else:
-            self._set_pill("UP TO DATE", "#e6f6ed", "#237346")
+            self._set_pill("UP TO DATE", "current")
             self.status_title.setText("ClipLM is up to date")
             default_details = (
                 "You are running the latest stable ClipLM release available "
@@ -176,7 +172,7 @@ class UpdateDialog(QDialog):
         self._set_checking(False)
 
     def set_error(self, message: str) -> None:
-        self._set_pill("CHECK FAILED", "#fdecec", "#a8323f")
+        self._set_pill("CHECK FAILED", "error")
         self.status_title.setText("ClipLM could not check for updates")
         self.latest_value.setText("Unavailable")
         self.details_label.setText(message)
@@ -189,21 +185,11 @@ class UpdateDialog(QDialog):
         self.check_button.setDisabled(checking)
         self.check_button.setText("Checking..." if checking else "Check again")
 
-    def _set_pill(self, text: str, background: str, foreground: str) -> None:
+    def _set_pill(self, text: str, state: str) -> None:
         self.status_pill.setText(text)
-        self.status_pill.setStyleSheet(
-            f"""
-            QLabel#update_status_pill {{
-                color: {foreground};
-                background: {background};
-                border: none;
-                border-radius: 12px;
-                padding: 0 9px;
-                font-size: 8pt;
-                font-weight: 700;
-            }}
-            """
-        )
+        self.status_pill.setProperty("state", state)
+        self.status_pill.style().unpolish(self.status_pill)
+        self.status_pill.style().polish(self.status_pill)
 
     @staticmethod
     def _result_metadata(result: UpdateResult) -> str:

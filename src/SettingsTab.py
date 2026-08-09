@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -11,57 +12,93 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ThemeManager import THEME_OPTIONS
+
 
 class SettingsTab(QWidget):
     saveRequested = Signal()
 
     def __init__(self):
         super().__init__()
+        self.setObjectName("settings_tab")
         self._setup_ui()
-        self._setup_styles()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
-        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setContentsMargins(16, 14, 16, 14)
 
+        appearance_card = QFrame()
+        appearance_card.setObjectName("card")
+        appearance_layout = QVBoxLayout(appearance_card)
+        appearance_layout.setSpacing(10)
+        appearance_layout.setContentsMargins(16, 14, 16, 14)
+
+        appearance_title = QLabel("Appearance")
+        appearance_title.setObjectName("card_title")
+        appearance_layout.addWidget(appearance_title)
+
+        appearance_options = QHBoxLayout()
+        appearance_options.setSpacing(14)
+        self.theme_label = QLabel("Accent")
+        self.theme_label.setObjectName("field_label")
+        appearance_options.addWidget(self.theme_label)
+
+        self.theme_combo = QComboBox()
+        self.theme_combo.setObjectName("text_input")
+        for label, value in THEME_OPTIONS:
+            self.theme_combo.addItem(label, value)
+        appearance_options.addWidget(self.theme_combo, 1)
+
+        self.dark_mode_checkbox = QCheckBox("Dark mode")
+        self.dark_mode_checkbox.setObjectName("toggle")
+        appearance_options.addWidget(self.dark_mode_checkbox)
+        appearance_layout.addLayout(appearance_options)
+        layout.addWidget(appearance_card)
         ai_card = QFrame()
         ai_card.setObjectName("card")
         ai_layout = QVBoxLayout(ai_card)
         ai_layout.setSpacing(8)
-        ai_layout.setContentsMargins(12, 12, 12, 12)
+        ai_layout.setContentsMargins(16, 14, 16, 14)
 
         ai_title = QLabel("Agent Settings")
         ai_title.setObjectName("card_title")
         ai_layout.addWidget(ai_title)
+        form_layout = QGridLayout()
+        form_layout.setHorizontalSpacing(14)
+        form_layout.setVerticalSpacing(10)
+        form_layout.setColumnMinimumWidth(0, 190)
+        form_layout.setColumnStretch(1, 1)
+
 
         self.endpoint_label = QLabel("OpenAI Compatible Endpoint")
         self.endpoint_label.setObjectName("field_label")
-        ai_layout.addWidget(self.endpoint_label)
 
         self.endpoint_input = QLineEdit()
         self.endpoint_input.setObjectName("text_input")
         self.endpoint_input.setPlaceholderText("https://api.example.com/v1/")
-        ai_layout.addWidget(self.endpoint_input)
+        form_layout.addWidget(self.endpoint_input, 0, 1)
 
         self.model_label = QLabel("Model")
         self.model_label.setObjectName("field_label")
-        ai_layout.addWidget(self.model_label)
 
         self.model_input = QLineEdit()
         self.model_input.setObjectName("text_input")
         self.model_input.setPlaceholderText("gpt-4.1-mini")
-        ai_layout.addWidget(self.model_input)
+        form_layout.addWidget(self.model_input, 1, 1)
 
         self.api_key_label = QLabel("API Key")
         self.api_key_label.setObjectName("field_label")
-        ai_layout.addWidget(self.api_key_label)
 
         self.api_key_input = QLineEdit()
         self.api_key_input.setObjectName("text_input")
         self.api_key_input.setEchoMode(QLineEdit.Password)
         self.api_key_input.setPlaceholderText("Enter API key")
-        ai_layout.addWidget(self.api_key_input)
+        form_layout.addWidget(self.endpoint_label, 0, 0)
+        form_layout.addWidget(self.model_label, 1, 0)
+        form_layout.addWidget(self.api_key_label, 2, 0)
+        form_layout.addWidget(self.api_key_input, 2, 1)
+        ai_layout.addLayout(form_layout)
 
         layout.addWidget(ai_card)
 
@@ -69,7 +106,7 @@ class SettingsTab(QWidget):
         translate_card.setObjectName("card")
         translate_layout = QVBoxLayout(translate_card)
         translate_layout.setSpacing(8)
-        translate_layout.setContentsMargins(12, 12, 12, 12)
+        translate_layout.setContentsMargins(16, 14, 16, 14)
 
         translate_title = QLabel("Translate Settings")
         translate_title.setObjectName("card_title")
@@ -77,17 +114,22 @@ class SettingsTab(QWidget):
 
         self.translate_enabled_checkbox = QCheckBox("Enable Translate tab")
         self.translate_enabled_checkbox.setObjectName("toggle")
-        translate_layout.addWidget(self.translate_enabled_checkbox)
 
         self.translate_api_label = QLabel("Translation API")
         self.translate_api_label.setObjectName("field_label")
-        translate_layout.addWidget(self.translate_api_label)
 
         self.translate_api_combo = QComboBox()
         self.translate_api_combo.setObjectName("text_input")
         self.translate_api_combo.addItem("Google Translate API", "google")
         self.translate_api_combo.addItem("LLM API", "llm")
-        translate_layout.addWidget(self.translate_api_combo)
+
+        translate_options = QHBoxLayout()
+        translate_options.setSpacing(14)
+        translate_options.addWidget(self.translate_enabled_checkbox)
+        translate_options.addStretch(1)
+        translate_options.addWidget(self.translate_api_label)
+        translate_options.addWidget(self.translate_api_combo, 1)
+        translate_layout.addLayout(translate_options)
 
         translate_hint = QLabel(
             "Source and target language preferences are saved from the Translate tab. "
@@ -110,6 +152,7 @@ class SettingsTab(QWidget):
         footer.addWidget(self.save_button)
 
         layout.addLayout(footer)
+
 
     def _setup_styles(self):
         self.setStyleSheet(
@@ -172,8 +215,16 @@ class SettingsTab(QWidget):
         )
 
     def set_settings(self, settings):
+        appearance_settings = settings.get("appearance", {})
         ai_settings = settings.get("ai", {})
         translate_settings = settings.get("translate", {})
+        theme_index = self.theme_combo.findData(
+            appearance_settings.get("theme", "blue")
+        )
+        self.theme_combo.setCurrentIndex(theme_index if theme_index >= 0 else 0)
+        self.dark_mode_checkbox.setChecked(
+            appearance_settings.get("dark_mode", False)
+        )
         self.endpoint_input.setText(ai_settings.get("endpoint", ""))
         self.model_input.setText(ai_settings.get("model", ""))
         self.api_key_input.setText(ai_settings.get("api_key", ""))
@@ -189,6 +240,10 @@ class SettingsTab(QWidget):
 
     def get_settings(self):
         return {
+            "appearance": {
+                "theme": self.theme_combo.currentData(),
+                "dark_mode": self.dark_mode_checkbox.isChecked(),
+            },
             "ai": {
                 "endpoint": self.endpoint_input.text().strip(),
                 "model": self.model_input.text().strip(),

@@ -4,9 +4,9 @@ class ManualEntryDialog(QDialog):
     def __init__(self, parent=None, init_title: str = "", init_text: str = ""):
         super().__init__(parent)
         self.init_title = init_title
+        self.setObjectName("manual_entry_dialog")
         self.init_text = init_text
         self._setup_ui()
-        self._setup_styles()
         # self.setWindowTitle("New Manual Entry")
 
         # self.layout = QVBoxLayout(self)
@@ -106,12 +106,16 @@ class ManualEntryDialog(QDialog):
         self.layout = QVBoxLayout(self)
 
         self.title_input = QLineEdit(self)
+        self.title_input.setObjectName("note_title_input")
         self.title_input.setPlaceholderText("Enter note title")
+        self.layout.setContentsMargins(16, 16, 16, 14)
+        self.layout.setSpacing(10)
         
         self.title_input.setText(self.init_title)
         self.layout.addWidget(self.title_input)
 
         self.text_input = QPlainTextEdit(self)
+        self.text_input.setObjectName("note_content_input")
         self.text_input.setPlaceholderText("Enter note content")
         self.text_input.setPlainText(self.init_text)
         self.layout.addWidget(self.text_input)
@@ -128,12 +132,14 @@ class ManualEntryDialog(QDialog):
 
         # Customize OK button
         self.ok_button.setText("Save")
+        self.ok_button.setObjectName("primary_button")
         self.ok_button.setIcon(QIcon())
         # ok_button.setFixedSize(100, 35)
         self.ok_button.setFixedHeight(35)  # Fix the height
         self.ok_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         # Customize Cancel button
         self.cancel_button.setText("Cancel")
+        self.ok_button.setProperty("role", "primary")
         self.cancel_button.setIcon(QIcon())
         # cancel_button.setFixedSize(100, 35)
         self.cancel_button.setFixedHeight(35)  # Fix the height
@@ -141,6 +147,10 @@ class ManualEntryDialog(QDialog):
         # Add stretch before, between, and after buttons
         button_layout.addStretch()
         button_layout.addWidget(self.cancel_button)
+        self.cancel_button.setProperty("role", "secondary")
+        for button in (self.ok_button, self.cancel_button):
+            button.style().unpolish(button)
+            button.style().polish(button)
         button_layout.addStretch()
         button_layout.addWidget(self.ok_button)
         button_layout.addStretch()

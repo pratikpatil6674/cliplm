@@ -19,14 +19,14 @@ class FavoritesTab(QWidget):
         super().__init__()
         self.presenter = None
         self.id_to_list_item = {}
-        self._manage_mode = False
+        self._delete_mode = False
         self._is_populating = False
         self._setup_ui()
-        self._set_styles()
         self._connect_signals()
         self._refresh_header()
 
     def _setup_ui(self):
+        self.setObjectName("favorites_tab")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -36,9 +36,9 @@ class FavoritesTab(QWidget):
             "favorite",
             "Search favorites",
         )
-        self.manage_action = self.header.add_menu_action(
-            "Manage favorites",
-            self._set_manage_mode,
+        self.delete_action = self.header.add_menu_action(
+            "Delete",
+            self._set_delete_mode,
             checkable=True,
         )
         layout.addWidget(self.header)
@@ -75,8 +75,8 @@ class FavoritesTab(QWidget):
     def current_search_query(self) -> str:
         return self.header.current_search_text()
 
-    def _set_manage_mode(self, enabled: bool) -> None:
-        self._manage_mode = enabled
+    def _set_delete_mode(self, enabled: bool) -> None:
+        self._delete_mode = enabled
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
             widget = self.list_widget.itemWidget(item)
@@ -92,7 +92,7 @@ class FavoritesTab(QWidget):
     def add_list_item(self, id: str, clip_data: ClipData):
         list_item = QListWidgetItem()
         list_item_widget = FavoriteCard(id, clip_data)
-        list_item_widget.toggle_delete(self._manage_mode)
+        list_item_widget.toggle_delete(self._delete_mode)
         list_item_widget.copyRequested.connect(
             lambda database_id: self.presenter.handle_copy_request(database_id)
         )
@@ -115,7 +115,7 @@ class FavoritesTab(QWidget):
             self.header.set_result_count(total)
         else:
             self.header.set_count(total)
-        self.manage_action.setEnabled(total > 0)
+        self.delete_action.setEnabled(total > 0)
 
     def populate_fav_list(self, favorites_history):
         self.list_widget.clear()

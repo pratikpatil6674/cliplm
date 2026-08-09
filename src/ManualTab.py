@@ -23,14 +23,14 @@ class ManualTab(QWidget):
         super().__init__()
         self.presenter = None
         self.id_to_list_item = {}
-        self._manage_mode = False
+        self._delete_mode = False
         self._is_populating = False
         self._setup_ui()
-        self._set_styles()
         self._connect_signals()
         self._refresh_header()
 
     def _setup_ui(self):
+        self.setObjectName("notes_tab")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -45,9 +45,9 @@ class ManualTab(QWidget):
             lambda checked=False: self.handle_add_request(),
             icon=ADD_ICON_DARK,
         )
-        self.manage_action = self.header.add_menu_action(
-            "Manage notes",
-            self._set_manage_mode,
+        self.delete_action = self.header.add_menu_action(
+            "Delete",
+            self._set_delete_mode,
             checkable=True,
         )
         layout.addWidget(self.header)
@@ -84,8 +84,8 @@ class ManualTab(QWidget):
     def current_search_query(self) -> str:
         return self.header.current_search_text()
 
-    def _set_manage_mode(self, enabled: bool) -> None:
-        self._manage_mode = enabled
+    def _set_delete_mode(self, enabled: bool) -> None:
+        self._delete_mode = enabled
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
             widget = self.list_widget.itemWidget(item)
@@ -121,7 +121,7 @@ class ManualTab(QWidget):
             list_item = QListWidgetItem()
 
         list_item_widget = ManualCard(id, clip_data_top, clip_data_bottom)
-        list_item_widget.toggle_delete(self._manage_mode)
+        list_item_widget.toggle_delete(self._delete_mode)
         list_item_widget.copyRequested.connect(
             lambda mime_data: self.presenter.handle_copy_request(mime_data)
         )
@@ -150,7 +150,7 @@ class ManualTab(QWidget):
             self.header.set_result_count(total)
         else:
             self.header.set_count(total)
-        self.manage_action.setEnabled(total > 0)
+        self.delete_action.setEnabled(total > 0)
 
     def populate_manual_list(self, notes_history):
         self.list_widget.clear()

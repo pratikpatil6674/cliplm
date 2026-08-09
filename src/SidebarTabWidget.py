@@ -23,6 +23,7 @@ from resources import (
     STAR_ICON,
     STAR_ICON_LIGHT,
     SYNC_ICON_DARK,
+    SYNC_ICON_LIGHT,
     TRANSLATE_ICON,
     TRANSLATE_ICON_LIGHT,
 )
@@ -48,6 +49,7 @@ class SidebarTabWidget(QWidget):
         self._records = []
         self._current_index = -1
         self._available_update_version = ""
+        self._dark_mode = False
         self._setup_ui()
 
     def _setup_ui(self):
@@ -64,6 +66,7 @@ class SidebarTabWidget(QWidget):
         sidebar_layout.setSpacing(0)
 
         self.top_tabs_layout = QVBoxLayout()
+        self.top_tabs_layout.setContentsMargins(0, 4, 0, 0)
         self.top_tabs_layout.setSpacing(1)
         sidebar_layout.addLayout(self.top_tabs_layout)
         sidebar_layout.addStretch(1)
@@ -83,15 +86,8 @@ class SidebarTabWidget(QWidget):
         self.update_badge = QFrame(self.update_button)
         self.update_badge.setObjectName("update_badge")
         self.update_badge.setFixedSize(9, 9)
-        self.update_badge.move(36, 3)
+        self.update_badge.move(33, 2)
         self.update_badge.setAttribute(Qt.WA_TransparentForMouseEvents)
-        self.update_badge.setStyleSheet("""
-            QFrame#update_badge {
-                background: #f59e0b;
-                border: 2px solid #fbfdff;
-                border-radius: 4px;
-            }
-        """)
         self.update_badge.hide()
         self.bottom_tabs_layout.addWidget(
             self.update_button,
@@ -102,6 +98,7 @@ class SidebarTabWidget(QWidget):
 
         self.content_shell = QFrame()
         self.content_shell.setObjectName("content_shell")
+        self.content_shell.setAttribute(Qt.WA_StyledBackground, True)
         content_layout = QVBoxLayout(self.content_shell)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
@@ -109,6 +106,7 @@ class SidebarTabWidget(QWidget):
 
         self.stack = QStackedWidget()
         self.stack.setObjectName("sidebar_pages")
+        self.stack.setAttribute(Qt.WA_StyledBackground, True)
         content_layout.addWidget(self.stack)
 
         self.search_shortcut = QShortcut(QKeySequence("/"), self)
@@ -118,20 +116,6 @@ class SidebarTabWidget(QWidget):
 
         root.addWidget(self.sidebar)
         root.addWidget(self.content_shell, 1)
-
-        self._base_stylesheet = """
-            QFrame#sidebar_tabs {
-                background: #fbfdff;
-                border-right: 1px solid rgba(30, 36, 44, 0.08);
-            }
-            QFrame#content_shell {
-                background: #f5f7fb;
-            }
-            QStackedWidget#sidebar_pages {
-                background: #f5f7fb;
-            }
-        """
-        super().setStyleSheet(self._base_stylesheet)
 
     def addTab(self, widget, tab_name):
         display_text = self._display_text_for_tab(tab_name)
@@ -145,6 +129,8 @@ class SidebarTabWidget(QWidget):
         )
 
         page = QWidget()
+        page.setObjectName("sidebar_page")
+        page.setAttribute(Qt.WA_StyledBackground, True)
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(0)
@@ -239,12 +225,23 @@ class SidebarTabWidget(QWidget):
         for button_index, record in enumerate(self._records):
             is_current = button_index == index
             record.button.setChecked(is_current)
-            record.button.setIcon(
-                record.icon_light if is_current else record.icon
-            )
+            if self._dark_mode:
+                icon = record.icon if is_current else record.icon_light
+            else:
+                icon = record.icon_light if is_current else record.icon
+            record.button.setIcon(icon)
             record.button.update()
         self.currentChanged.emit(index)
         self._update_search_shortcut()
+
+
+    def set_dark_mode(self, enabled: bool) -> None:
+        self._dark_mode = bool(enabled)
+        self.update_button.setIcon(
+            SYNC_ICON_LIGHT if self._dark_mode else SYNC_ICON_DARK
+        )
+        if self._current_index >= 0:
+            self.setCurrentIndex(self._current_index)
 
     def _update_search_shortcut(self) -> None:
         current_widget = self.currentWidget()
@@ -271,12 +268,6 @@ class SidebarTabWidget(QWidget):
 
     def setTabPosition(self, position):
         return None
-
-    def setStyleSheet(self, styleSheet):
-        merged_stylesheet = self._base_stylesheet
-        if styleSheet:
-            merged_stylesheet = f"{merged_stylesheet}\n{styleSheet}"
-        super().setStyleSheet(merged_stylesheet)
 
     def _first_visible_index(self):
         for index, record in enumerate(self._records):

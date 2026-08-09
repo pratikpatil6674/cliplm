@@ -37,7 +37,6 @@ class ManualCard(QFrame):
         self.clip_data_bottom = clip_data_bottom
 
         self._setup_ui()
-        self._setup_styles()
         self._connect_signals()
 
     def sizeHint(self):
@@ -50,18 +49,19 @@ class ManualCard(QFrame):
         self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
 
         layout = QHBoxLayout(self)
-        # layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 9, 12, 9)
+        layout.setSpacing(10)
 
         # Left icon column (vertical)
         icon_col = QVBoxLayout()
         # icon_col.setSpacing(8)
         icon_col.addStretch()
 
-        icon_size = QSize(20, 20)
+        icon_size = QSize(17, 17)
         button_size = QSize(30, 30)
 
         self.copy_btn = QToolButton()
+        self.copy_btn.setObjectName("card_action")
         self.copy_btn.setIcon(COPY_ICON_LIGHT)
         self.copy_btn.setIconSize(icon_size)
         self.copy_btn.setFixedSize(button_size)
@@ -71,6 +71,8 @@ class ManualCard(QFrame):
         icon_col.addStretch()
 
         self.delete_btn = QToolButton()
+        self.delete_btn.setObjectName("card_action")
+        self.delete_btn.setProperty("role", "danger")
         self.delete_btn.setIcon(DELETE_ICON_LIGHT)
         self.delete_btn.setIconSize(icon_size)
         self.delete_btn.setFixedSize(button_size)
@@ -100,6 +102,7 @@ class ManualCard(QFrame):
 
         # edit button on the far right
         self.edit_btn = QToolButton()
+        self.edit_btn.setObjectName("card_action")
         self.edit_btn.setIcon(EDIT_ICON_LIGHT)
         self.edit_btn.setIconSize(icon_size)
         self.edit_btn.setFixedSize(button_size)

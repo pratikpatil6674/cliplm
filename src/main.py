@@ -39,6 +39,10 @@ def main():
     app.setWindowIcon(APP_ICON)
     QCoreApplication.setApplicationVersion(APP_VERSION)
 
+    from ThemeManager import apply_app_theme
+
+    apply_app_theme(app)
+
     from App import App
 
     loop = QEventLoop(app)

@@ -1,79 +1,52 @@
 from copy import deepcopy
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QMessageBox,
     QPushButton,
     QPlainTextEdit,
-    QSizePolicy,
     QVBoxLayout,
-    QWidget,
 )
 
 
 class PromptEditorDialog(QDialog):
-    def __init__(self, prompt_config: dict, parent=None):
+    def __init__(
+        self,
+        prompt_config: dict,
+        parent=None,
+        editing_prompt_name: str | None = None,
+    ):
         super().__init__(parent)
         self.prompt_config = deepcopy(prompt_config)
+        self.editing_prompt_name = editing_prompt_name
+        self.setObjectName("prompt_editor_dialog")
         self.current_prompt_name = None
         self._setup_ui()
-        self._setup_styles()
-        self._populate_prompt_list()
-        self._start_new_prompt()
+        if editing_prompt_name in self.prompt_config:
+            prompt_data = self.prompt_config[editing_prompt_name]
+            self.current_prompt_name = editing_prompt_name
+            self.name_input.setText(editing_prompt_name)
+            self.prompt_input.setPlainText(prompt_data.get("prompt", ""))
+        else:
+            self._start_new_prompt()
 
     def _setup_ui(self):
-        self.setWindowTitle("Edit prompts")
-        self.resize(760, 520)
+        self.setWindowTitle("Edit prompt" if self.editing_prompt_name else "Add prompt")
+        self.resize(560, 420)
 
         root = QHBoxLayout(self)
         root.setSpacing(12)
-        root.setContentsMargins(10, 10, 10, 10)
-
-        sidebar = QFrame()
-        sidebar.setObjectName("sidebar")
-        sidebar.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        sidebar.setFixedWidth(220)
-        sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(10, 10, 10, 10)
-        sidebar_layout.setSpacing(8)
-
-        prompts_label = QLabel("Prompts")
-        prompts_label.setObjectName("section_label")
-        sidebar_layout.addWidget(prompts_label)
-
-        self.prompts_list = QListWidget()
-        self.prompts_list.setObjectName("prompts_list")
-        self.prompts_list.currentItemChanged.connect(self._load_selected_prompt)
-        sidebar_layout.addWidget(self.prompts_list, 1)
-
-        self.new_button = QPushButton("New prompt")
-        self.new_button.setObjectName("secondary_button")
-        self.new_button.clicked.connect(self._start_new_prompt)
-        sidebar_layout.addWidget(self.new_button)
-
-        self.delete_button = QPushButton("Delete prompt")
-        self.delete_button.setObjectName("danger_button")
-        self.delete_button.clicked.connect(self._delete_current_prompt)
-        sidebar_layout.addWidget(self.delete_button)
-
-        root.addWidget(sidebar)
+        root.setContentsMargins(14, 14, 14, 14)
 
         editor = QFrame()
         editor.setObjectName("card")
         editor_layout = QVBoxLayout(editor)
-        editor_layout.setContentsMargins(10, 10, 10, 10)
-        editor_layout.setSpacing(8)
-
-        title_label = QLabel("Prompt details")
-        title_label.setObjectName("section_label")
-        editor_layout.addWidget(title_label)
+        editor_layout.setContentsMargins(18, 16, 18, 16)
+        editor_layout.setSpacing(10)
 
         name_label = QLabel("Name")
         name_label.setObjectName("field_label")
@@ -102,12 +75,8 @@ class PromptEditorDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
         button_row.addWidget(self.cancel_button)
 
-        self.apply_button = QPushButton("Apply")
-        self.apply_button.setObjectName("secondary_button")
-        self.apply_button.clicked.connect(self._apply_current_prompt)
-        button_row.addWidget(self.apply_button)
-
-        self.save_button = QPushButton("Save prompts")
+        save_text = "Save changes" if self.editing_prompt_name else "Add prompt"
+        self.save_button = QPushButton(save_text)
         self.save_button.setObjectName("primary_button")
         self.save_button.clicked.connect(self._save_and_accept)
         button_row.addWidget(self.save_button)
@@ -231,33 +200,11 @@ class PromptEditorDialog(QDialog):
         """
         )
 
-    def _populate_prompt_list(self):
-        self.prompts_list.clear()
-        for prompt_name in self.prompt_config.keys():
-            self.prompts_list.addItem(QListWidgetItem(prompt_name))
-
-        if self.prompts_list.count() > 0:
-            self.prompts_list.setCurrentRow(0)
-
     def _start_new_prompt(self):
         self.current_prompt_name = None
-        self.prompts_list.clearSelection()
         self.name_input.clear()
         self.prompt_input.clear()
         self.name_input.setFocus()
-        self._update_delete_button_state()
-
-    def _load_selected_prompt(self, item: QListWidgetItem, previous: QListWidgetItem | None = None):
-        if item is None:
-            self.current_prompt_name = None
-            self._update_delete_button_state()
-            return
-        prompt_name = item.text()
-        prompt_data = self.prompt_config.get(prompt_name, {})
-        self.current_prompt_name = prompt_name
-        self.name_input.setText(prompt_name)
-        self.prompt_input.setPlainText(prompt_data.get("prompt", ""))
-        self._update_delete_button_state()
 
     def _normalize_prompt_name(self, prompt_name: str) -> str:
         return " ".join(prompt_name.split()).casefold()
@@ -286,44 +233,12 @@ class PromptEditorDialog(QDialog):
 
         self.prompt_config[prompt_name] = {"prompt": prompt_text}
         self.current_prompt_name = prompt_name
-        self._populate_prompt_list()
-        self._select_prompt(prompt_name)
         return True
-
-    def _select_prompt(self, prompt_name: str):
-        matches = self.prompts_list.findItems(prompt_name, Qt.MatchExactly)
-        if matches:
-            self.prompts_list.setCurrentItem(matches[0])
 
     def _save_and_accept(self):
         if not self._apply_current_prompt():
             return
         self.accept()
-
-    def _delete_current_prompt(self):
-        if not self.current_prompt_name:
-            return
-
-        prompt_name = self.current_prompt_name
-        answer = self._show_message_box(
-            title="Delete Prompt",
-            text=f"Delete '{prompt_name}'?",
-            icon=QMessageBox.Warning,
-            buttons=QMessageBox.Yes | QMessageBox.No,
-            default_button=QMessageBox.No,
-        )
-        if answer != QMessageBox.Yes:
-            return
-
-        self.prompt_config.pop(prompt_name, None)
-        self._populate_prompt_list()
-        if self.prompts_list.count() > 0:
-            self.prompts_list.setCurrentRow(0)
-        else:
-            self._start_new_prompt()
-
-    def _update_delete_button_state(self):
-        self.delete_button.setEnabled(bool(self.current_prompt_name))
 
     def _show_error(self, title: str, message: str):
         self._show_message_box(
@@ -341,7 +256,6 @@ class PromptEditorDialog(QDialog):
         message_box.setIcon(icon)
         message_box.setStandardButtons(buttons)
         message_box.setDefaultButton(default_button)
-        message_box.setStyleSheet(self._message_box_stylesheet())
         self._style_message_box_buttons(message_box)
         return message_box.exec()
 
@@ -358,11 +272,11 @@ class PromptEditorDialog(QDialog):
         for button in message_box.buttons():
             role = message_box.buttonRole(button)
             if role in destructive_roles:
-                button.setStyleSheet(self._danger_button_stylesheet())
+                button.setProperty("role", "danger")
             elif role in primary_roles:
-                button.setStyleSheet(self._primary_button_stylesheet())
+                button.setProperty("role", "primary")
             else:
-                button.setStyleSheet(self._secondary_button_stylesheet())
+                button.setProperty("role", "secondary")
 
     def _primary_button_stylesheet(self):
         return """
@@ -429,3 +343,6 @@ class PromptEditorDialog(QDialog):
 
     def get_prompt_config(self):
         return deepcopy(self.prompt_config)
+
+    def get_saved_prompt_name(self):
+        return self.current_prompt_name

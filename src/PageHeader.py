@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QFrame,
@@ -43,7 +43,6 @@ class PageHeader(QFrame):
         self._search_timer.timeout.connect(self._emit_search)
         self.setObjectName("page_header")
         self._setup_ui(title, search_placeholder)
-        self._set_styles()
 
     def _setup_ui(self, title: str, search_placeholder: str) -> None:
         layout = QHBoxLayout(self)
@@ -76,10 +75,8 @@ class PageHeader(QFrame):
         self.overflow_button = QToolButton()
         self.overflow_button.setObjectName("page_overflow_button")
         self.overflow_button.setText("...")
-        self.overflow_button.setToolTip("More options")
         self.overflow_button.setCursor(Qt.PointingHandCursor)
-        self.overflow_button.setPopupMode(QToolButton.InstantPopup)
-        self.overflow_button.setMenu(self.overflow_menu)
+        self.overflow_button.clicked.connect(self._show_overflow_menu)
         self.overflow_button.setFixedSize(32, 32)
         self.overflow_button.hide()
 
@@ -107,6 +104,11 @@ class PageHeader(QFrame):
         button.clicked.connect(callback)
         self.actions_layout.addWidget(button)
         return button
+
+    def _show_overflow_menu(self) -> None:
+        self.overflow_menu.exec(
+            self.overflow_button.mapToGlobal(QPoint(0, self.overflow_button.height()))
+        )
 
     def add_menu_action(
         self,
@@ -148,92 +150,5 @@ class PageHeader(QFrame):
 
     def _emit_search(self) -> None:
         self.searchChanged.emit(self.current_search_text())
-
-    def _set_styles(self) -> None:
-        self.setStyleSheet("""
-            QFrame#page_header {
-                background: #f5f7fb;
-                border: none;
-                border-bottom: 1px solid rgba(30, 36, 44, 0.08);
-            }
-            QLabel#page_title {
-                color: #202733;
-                background: transparent;
-                font-size: 14pt;
-                font-weight: 700;
-            }
-            QLabel#page_count {
-                color: #687386;
-                background: #e9edf4;
-                border-radius: 9px;
-                padding: 2px 7px;
-                font-size: 9pt;
-            }
-            QLineEdit#page_search {
-                color: #202733;
-                background: #ffffff;
-                border: 1px solid #d5dce7;
-                border-radius: 8px;
-                padding: 0 9px;
-                font-size: 10pt;
-                selection-background-color: #2f6fe4;
-            }
-            QLineEdit#page_search:hover {
-                border-color: #aebbd0;
-                background: #fbfdff;
-            }
-            QLineEdit#page_search:focus {
-                border: 1px solid #2f6fe4;
-                background: #ffffff;
-            }
-            QPushButton#page_primary_action {
-                color: #ffffff;
-                background: #2f6fe4;
-                border: none;
-                border-radius: 8px;
-                padding: 0 12px;
-                font-size: 10pt;
-                font-weight: 600;
-                text-transform: none;
-            }
-            QPushButton#page_primary_action:hover {
-                background: #255fc8;
-            }
-            QToolButton#page_overflow_button {
-                color: #4b5668;
-                background: transparent;
-                border: none;
-                border-radius: 7px;
-                padding: 0;
-                font-size: 15pt;
-                font-weight: 700;
-            }
-            QToolButton#page_overflow_button:hover,
-            QToolButton#page_overflow_button:pressed {
-                color: #202733;
-                background: #e7ecf4;
-            }
-            QToolButton#page_overflow_button::menu-indicator {
-                image: none;
-            }
-            QMenu#page_overflow_menu {
-                color: #202733;
-                background: #ffffff;
-                border: none;
-                padding: 2px;
-                font-size: 10pt;
-            }
-            QMenu#page_overflow_menu::item {
-                border: none;
-                border-radius: 5px;
-                margin: 0;
-                padding: 5px 11px;
-                min-height: 18px;
-            }
-            QMenu#page_overflow_menu::item:selected {
-                background: #edf3ff;
-                color: #255fc8;
-            }
-        """)
 
 

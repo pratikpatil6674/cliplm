@@ -30,3 +30,4 @@ SETTINGS_ICON_LIGHT = QIcon(":/resources/icons/settings_light.svg")
 
 ADD_ICON_DARK = QIcon(":/resources/icons/add_dark.svg")
 SYNC_ICON_DARK = QIcon(":/resources/icons/sync_dark.svg")
+SYNC_ICON_LIGHT = QIcon(":/resources/icons/sync_light.svg")

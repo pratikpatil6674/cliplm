@@ -17,7 +17,6 @@ from PySide6.QtGui import QCursor
 from PySide6.QtGui import QDesktopServices, QIcon, QKeySequence, QShortcut, QColor, QMouseEvent, QAction
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtCore import QCoreApplication, QStandardPaths, QDir, QSaveFile, QByteArray, QUrl
-import qt_material
 import asyncio
 from googletrans import Translator
 from ManualCard import ManualCard
@@ -59,6 +58,7 @@ from SettingsStore import SettingsStore
 from SettingsTab import SettingsTab
 from SidebarTabWidget import SidebarTabWidget
 from TabShortcuts import TabShortcuts
+from ThemeManager import apply_app_theme
 
 
 class App(QWidget):
@@ -69,6 +69,10 @@ class App(QWidget):
         self.settings_store = SettingsStore(
             Path(self.data_dir) / "settings.json",
             defaults={
+                "appearance": {
+                    "theme": "blue",
+                    "dark_mode": False,
+                },
                 "ai": {
                     "endpoint": "",
                     "model": "",
@@ -93,6 +97,7 @@ class App(QWidget):
             },
         )
         self.settings = self.settings_store.get()
+        self._apply_appearance_settings()
         self.clipboard_service = ClipboardService(self)
         ai_settings = self.settings.get("ai", {})
         self.ai_service = LLMService(
@@ -108,9 +113,8 @@ class App(QWidget):
         )
         self.clipboard_store = ClipboardStore(Path(self.data_dir) / "clipboard.db", self.data_dir)
         self.prompts_store = PromptsStore(Path(self.config_dir) / "prompts.toml")
-        qt_material.apply_stylesheet(self, theme='light_blue.xml')
         self._setup_ui()
-        self._set_styles()
+        self._apply_appearance_settings()
         self._setup_updates()
 
         self.setup_tray_icon()
@@ -122,6 +126,7 @@ class App(QWidget):
 
     
     def _setup_ui(self):
+        self.setObjectName("app_window")
         self.setWindowTitle("ClipLM")
         self.setGeometry(100, 100, 600, 500)
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
@@ -175,6 +180,9 @@ class App(QWidget):
         )
         self.translate_tab.presenter = self.translate_presenter
         translate_settings = self.settings.get("translate", {})
+        self.translate_tab.set_translation_provider(
+            translate_settings.get("api", "google")
+        )
         self.translate_tab.set_selected_languages(
             translate_settings.get("source_language", "auto"),
             translate_settings.get("destination_language", "en"),
@@ -188,7 +196,10 @@ class App(QWidget):
         self.manual_presenter.refresh_view()
         # Add tabs to main layout
 
-        self.ai_tab = AIPromptSidebarTab(self.prompts_store)
+        self.ai_tab = AIPromptSidebarTab(
+            self.prompts_store,
+            self.clipboard_service,
+        )
         self.ai_presenter = AIPresenter(self.ai_service, self.ai_tab)
         self.ai_tab.promptExecutionRequested.connect(self.ai_presenter.execute_selected_prompt)
         self.clipboard_presenter.ai_presenter = self.ai_presenter
@@ -210,27 +221,6 @@ class App(QWidget):
         )
         # self._handle_tab_change(self.tabs.currentIndex())
         # self.translate_presenter.translate_text("Hello")
-
-    def _set_styles(self):
-        self.setStyleSheet(self.styleSheet() + """
-            QWidget {
-                background-color: #f5f7fb;
-            }
-        """)
-        self.tabs.setStyleSheet("""
-            QTabWidget::pane {
-                border: none;
-                margin: 0px;
-                padding: 0px;
-            }
-            QTabBar::tab { 
-                text-transform: none; 
-                font-size: 15px;
-                
-            }
-        """)
-    
-
 
     def _setup_updates(self) -> None:
         self.update_service = UpdateService(APP_VERSION, self)
@@ -428,11 +418,26 @@ class App(QWidget):
         updated_settings["translate"]["destination_language"] = self.translate_tab.get_destination_language()
         self.settings = self.settings_store.update(updated_settings)
         self.settings_tab.set_settings(self.settings)
+        self._apply_appearance_settings()
         self._apply_ai_settings()
         self._apply_translate_settings()
         self._apply_translate_tab_visibility(
             self.settings.get("translate", {}).get("enabled", True)
         )
+
+    def _apply_appearance_settings(self):
+        appearance_settings = self.settings.get("appearance", {})
+        app = QApplication.instance()
+        if app is not None:
+            apply_app_theme(
+                app,
+                theme_name=appearance_settings.get("theme", "blue"),
+                dark_mode=appearance_settings.get("dark_mode", False),
+            )
+            if hasattr(self, "tabs"):
+                self.tabs.set_dark_mode(
+                    appearance_settings.get("dark_mode", False)
+                )
 
     def _apply_ai_settings(self):
         ai_settings = self.settings.get("ai", {})
@@ -444,10 +449,12 @@ class App(QWidget):
 
     def _apply_translate_settings(self):
         translate_settings = self.settings.get("translate", {})
+        provider = translate_settings.get("api", "google")
         self.translate_service.configure(
-            provider=translate_settings.get("api", "google"),
+            provider=provider,
             llm_service=self.ai_service,
         )
+        self.translate_tab.set_translation_provider(provider)
 
     def _handle_translate_language_change(self, source_language, destination_language):
         self.settings = self.settings_store.update(

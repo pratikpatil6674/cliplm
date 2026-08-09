@@ -20,7 +20,6 @@ class FavoriteCard(QFrame):
         self.clip_data = clip_data
 
         self._setup_ui()
-        self._setup_styles()
         self._connect_signals()
     
     def toggle_delete(self, visible: bool):
@@ -35,19 +34,21 @@ class FavoriteCard(QFrame):
         return hint
 
     def _setup_ui(self):
+        self.setObjectName("favorite_card")
         self.setFrameShape(QFrame.StyledPanel)
         self.setMinimumHeight(60)
         self.setMaximumHeight(self.MAX_CARD_HEIGHT)
         layout = QHBoxLayout(self)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 9, 12, 9)
+        layout.setSpacing(10)
         
         # ----- Left: Vertical button layout -----
-        btn_size = 15
+        btn_size = 28
         btn_layout = QVBoxLayout()
         btn_layout.addStretch()
 
         self.copy_button = QPushButton()
-        self.copy_button.setObjectName("copy_button")
+        self.copy_button.setObjectName("card_action")
         self.copy_button.setIcon(COPY_ICON_LIGHT)
         self.copy_button.setFixedSize(btn_size, btn_size)
         btn_layout.addWidget(self.copy_button)
@@ -59,11 +60,13 @@ class FavoriteCard(QFrame):
         btn_layout.addStretch()
 
         self.delete_button = QPushButton()
-        self.delete_button.setObjectName("delete_button")
+        self.delete_button.setObjectName("card_action")
+        self.delete_button.setProperty("role", "danger")
         self.delete_button.setIcon(DELETE_ICON_LIGHT)
         self.delete_button.setFixedSize(btn_size, btn_size)
         btn_layout.addWidget(self.delete_button)
         self.delete_button_placeholder = QPushButton()
+        self.delete_button_placeholder.setObjectName("placeholder")
         self.delete_button_placeholder.setFixedSize(btn_size, btn_size)
         self.delete_button_placeholder.hide()
         btn_layout.addWidget(self.delete_button_placeholder)

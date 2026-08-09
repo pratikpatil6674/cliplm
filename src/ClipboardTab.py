@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QEvent, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -30,11 +30,11 @@ class ClipboardTab(QWidget, IClipboardTab):
         self.id_to_list_item = {}
         self._is_populating = False
         self._setup_ui()
-        self._set_styles()
         self._connect_signals()
         self._refresh_header()
 
     def _setup_ui(self):
+        self.setObjectName("clipboard_tab")
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
@@ -55,6 +55,8 @@ class ClipboardTab(QWidget, IClipboardTab):
         self.list.setObjectName("clipboard_list")
         self.list.setAlternatingRowColors(False)
         self.list.setResizeMode(QListWidget.Adjust)
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.list.viewport().installEventFilter(self)
         root.addWidget(self.list)
 
     def _set_styles(self):
@@ -95,37 +97,11 @@ class ClipboardTab(QWidget, IClipboardTab):
         clear_button.setIcon(QIcon())
         cancel_button.setIcon(QIcon())
 
-        message_box.setStyleSheet("""
-            QMessageBox {
-                background: #f5f7fb;
-            }
-            QMessageBox QLabel {
-                color: #1f2933;
-                background: transparent;
-                font-size: 11pt;
-            }
-            QMessageBox QPushButton {
-                min-width: 96px;
-                padding: 7px 12px;
-                border: 1px solid #d5dce7;
-                border-radius: 8px;
-                background: #ffffff;
-                color: #344054;
-                font-size: 10pt;
-                font-weight: 600;
-                text-transform: none;
-            }
-        """)
-        clear_button.setStyleSheet("""
-            QPushButton {
-                background: #cf3f4f;
-                color: #ffffff;
-                border: none;
-            }
-            QPushButton:hover {
-                background: #b83242;
-            }
-        """)
+        clear_button.setProperty("role", "danger")
+        cancel_button.setProperty("role", "secondary")
+        for button in (clear_button, cancel_button):
+            button.style().unpolish(button)
+            button.style().polish(button)
 
         message_box.exec()
         if message_box.clickedButton() is clear_button:
@@ -143,12 +119,33 @@ class ClipboardTab(QWidget, IClipboardTab):
         list_item_widget.favRequested.connect(
             lambda database_id: self.handle_fav_request(database_id)
         )
-        list_item.setSizeHint(list_item_widget.sizeHint())
+        item_size = list_item_widget.sizeHint()
+        item_size.setWidth(0)
+        list_item.setSizeHint(item_size)
         self.list.insertItem(0, list_item)
         self.list.setItemWidget(list_item, list_item_widget)
         self.id_to_list_item[id] = list_item
+        QTimer.singleShot(0, self._fit_cards_to_viewport)
         if not self._is_populating:
             self._refresh_header()
+
+    def eventFilter(self, watched, event):
+        if watched is self.list.viewport() and event.type() == QEvent.Resize:
+            QTimer.singleShot(0, self._fit_cards_to_viewport)
+        return super().eventFilter(watched, event)
+
+    def _fit_cards_to_viewport(self):
+        for row in range(self.list.count()):
+            item = self.list.item(row)
+            card = self.list.itemWidget(item)
+            if card is None:
+                continue
+
+            item_rect = self.list.visualItemRect(item)
+            left_inset = max(0, card.x() - item_rect.x())
+            card_width = item_rect.width() - (left_inset * 2)
+            if card_width > 0:
+                card.setFixedWidth(card_width)
 
     def delete_list_item(self, id: str):
         list_item = self.id_to_list_item.pop(id, None)

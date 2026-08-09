@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -22,8 +22,8 @@ class TranslateTab(QWidget):
         super().__init__()
         self._language_items = []
         self._syncing_scrollbars = True
+        self.setObjectName("translate_tab")
         self._setup_ui()
-        self._setup_styles()
         self._connect_scrollbars()
 
     def _setup_ui(self):
@@ -34,8 +34,8 @@ class TranslateTab(QWidget):
         controls = QFrame()
         controls.setObjectName("controls")
         controls_layout = QHBoxLayout(controls)
-        controls_layout.setContentsMargins(0, 0, 0, 0)
-        controls_layout.setSpacing(12)
+        controls_layout.setContentsMargins(12, 10, 12, 10)
+        controls_layout.setSpacing(8)
 
         self.source_combo = QComboBox()
         self.source_combo.setObjectName("language_combo")
@@ -55,8 +55,33 @@ class TranslateTab(QWidget):
         self.destination_combo.currentIndexChanged.connect(self._handle_language_change)
         controls_layout.addWidget(self.destination_combo, 1)
 
-        self.translate_button = QPushButton("Translate")
+        self.translate_button = QPushButton()
         self.translate_button.setObjectName("translate_button")
+        translate_button_layout = QVBoxLayout(self.translate_button)
+        translate_button_layout.setContentsMargins(10, 2, 10, 2)
+        translate_button_layout.setSpacing(0)
+
+        translate_text_container = QWidget(self.translate_button)
+        translate_text_container.setAttribute(Qt.WA_TransparentForMouseEvents)
+        translate_text_layout = QVBoxLayout(translate_text_container)
+        translate_text_layout.setContentsMargins(0, 0, 0, 0)
+        translate_text_layout.setSpacing(1)
+
+        self.translate_action_label = QLabel("Translate")
+        self.translate_action_label.setObjectName("translate_action_label")
+        self.translate_action_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.translate_action_label.setAlignment(Qt.AlignCenter)
+        translate_text_layout.addWidget(self.translate_action_label, 0, Qt.AlignHCenter)
+
+        self.translate_provider_label = QLabel("with Google")
+        self.translate_provider_label.setObjectName("translate_provider_label")
+        self.translate_provider_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.translate_provider_label.setAlignment(Qt.AlignCenter)
+        translate_text_layout.addWidget(self.translate_provider_label, 0, Qt.AlignHCenter)
+        translate_button_layout.addWidget(translate_text_container, 0, Qt.AlignCenter)
+
+        self.translate_button.setAccessibleName("Translate with Google")
+        QTimer.singleShot(0, self._update_translate_button_size)
         self.translate_button.setCursor(Qt.PointingHandCursor)
         self.translate_button.clicked.connect(self.translateRequested.emit)
         controls_layout.addWidget(self.translate_button)
@@ -66,8 +91,8 @@ class TranslateTab(QWidget):
         card = QFrame()
         card.setObjectName("card")
         card_layout = QHBoxLayout(card)
-        card_layout.setContentsMargins(0, 0, 0, 0)
-        card_layout.setSpacing(0)
+        card_layout.setContentsMargins(12, 12, 12, 12)
+        card_layout.setSpacing(8)
 
         self.translate_src_text = QPlainTextEdit("Copy text to populate this field.")
         self.translate_src_text.setObjectName("translate_src_text")
@@ -175,6 +200,29 @@ class TranslateTab(QWidget):
     def trigger_primary_action(self):
         self.translate_button.click()
 
+    def set_translation_provider(self, provider):
+        provider_labels = {
+            "google": "Google",
+            "llm": "LLM",
+        }
+        provider_label = provider_labels.get(provider, "Google")
+        button_text = f"Translate with {provider_label}"
+        self.translate_provider_label.setText(f"with {provider_label}")
+        self.translate_button.setAccessibleName(button_text)
+        self._update_translate_button_size()
+        QTimer.singleShot(0, self._update_translate_button_size)
+
+    def _update_translate_button_size(self):
+        content_width = max(
+            self.translate_action_label.sizeHint().width(),
+            self.translate_provider_label.sizeHint().width(),
+        )
+        control_height = max(
+            self.source_combo.sizeHint().height(),
+            self.destination_combo.sizeHint().height(),
+        )
+        self.translate_button.setFixedSize(content_width + 20, control_height)
+
     def _connect_scrollbars(self):
         self.source_scroll.verticalScrollBar().valueChanged.connect(
             lambda value: self._sync_scrollbars(
@@ -218,6 +266,8 @@ class TranslateTab(QWidget):
         self._populate_language_combo(self.destination_combo, destination_languages, "en")
         self._update_reverse_button_state()
 
+        self._update_translate_button_size()
+        QTimer.singleShot(0, self._update_translate_button_size)
     def _populate_language_combo(self, combo, languages, default_code):
         combo.blockSignals(True)
         combo.clear()
