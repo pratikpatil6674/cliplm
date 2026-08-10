@@ -25,7 +25,6 @@ from resources import *
 from ClipboardService import ClipboardService
 from ClipData import ClipData
 from TranslateService import TranslateService
-from JsonDB import ClipboardDB, FavoritesDB, ManualDB
 from SqlDB import ClipboardStore
 
 from ClipboardTab import ClipboardTab
