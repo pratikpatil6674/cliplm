@@ -343,6 +343,7 @@ QFrame#page_header {{
 }}
 QLabel#page_title,
 QLabel#card_title,
+QLabel#settings_card_title,
 QLabel#update_dialog_heading,
 QLabel#update_status_title,
 QLabel#update_version_value {{

@@ -1,4 +1,5 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -8,6 +9,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -18,13 +20,30 @@ from ThemeManager import THEME_OPTIONS
 class SettingsTab(QWidget):
     saveRequested = Signal()
 
-    def __init__(self):
+    def __init__(self, config_dir="", data_dir="", cache_dir=""):
         super().__init__()
+        self._storage_directories = (
+            ("Config", config_dir),
+            ("Data", data_dir),
+            ("Cache", cache_dir),
+        )
         self.setObjectName("settings_tab")
         self._setup_ui()
 
     def _setup_ui(self):
-        layout = QVBoxLayout(self)
+        root_layout = QVBoxLayout(self)
+        root_layout.setSpacing(0)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+
+        scroll_area = QScrollArea()
+        scroll_area.setObjectName("settings_scroll")
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        content = QWidget()
+        content.setObjectName("settings_content")
+        layout = QVBoxLayout(content)
         layout.setSpacing(12)
         layout.setContentsMargins(16, 14, 16, 14)
 
@@ -35,7 +54,7 @@ class SettingsTab(QWidget):
         appearance_layout.setContentsMargins(16, 14, 16, 14)
 
         appearance_title = QLabel("Appearance")
-        appearance_title.setObjectName("card_title")
+        appearance_title.setObjectName("settings_card_title")
         appearance_layout.addWidget(appearance_title)
 
         appearance_options = QHBoxLayout()
@@ -62,7 +81,7 @@ class SettingsTab(QWidget):
         ai_layout.setContentsMargins(16, 14, 16, 14)
 
         ai_title = QLabel("AI Settings")
-        ai_title.setObjectName("card_title")
+        ai_title.setObjectName("settings_card_title")
         ai_layout.addWidget(ai_title)
         form_layout = QGridLayout()
         form_layout.setHorizontalSpacing(14)
@@ -109,7 +128,7 @@ class SettingsTab(QWidget):
         translate_layout.setContentsMargins(16, 14, 16, 14)
 
         translate_title = QLabel("Translate Settings")
-        translate_title.setObjectName("card_title")
+        translate_title.setObjectName("settings_card_title")
         translate_layout.addWidget(translate_title)
 
         self.translate_enabled_checkbox = QCheckBox("Enable Translate tab")
@@ -140,9 +159,59 @@ class SettingsTab(QWidget):
         translate_layout.addWidget(translate_hint)
 
         layout.addWidget(translate_card)
+
+        storage_card = QFrame()
+        storage_card.setObjectName("card")
+        storage_layout = QVBoxLayout(storage_card)
+        storage_layout.setSpacing(8)
+        storage_layout.setContentsMargins(16, 12, 16, 12)
+
+        storage_title = QLabel("Storage locations")
+        storage_title.setObjectName("settings_card_title")
+        storage_layout.addWidget(storage_title)
+
+        directory_grid = QGridLayout()
+        directory_grid.setHorizontalSpacing(8)
+        directory_grid.setVerticalSpacing(6)
+        directory_grid.setColumnMinimumWidth(0, 54)
+        directory_grid.setColumnStretch(1, 1)
+        self.directory_inputs = {}
+
+        for row, (name, path) in enumerate(self._storage_directories):
+            label = QLabel(name)
+            label.setObjectName("field_label")
+
+            path_input = QLineEdit(str(path))
+            path_input.setObjectName("directory_path")
+            path_input.setReadOnly(True)
+            path_input.setToolTip(str(path))
+            path_input.setCursorPosition(0)
+            self.directory_inputs[name.lower()] = path_input
+
+            open_button = QPushButton("Open")
+            open_button.setObjectName("directory_open_button")
+            open_button.setCursor(Qt.PointingHandCursor)
+            open_button.setFixedSize(62, 30)
+            open_button.setEnabled(bool(path))
+            open_button.clicked.connect(
+                lambda _checked=False, directory=path: self._open_directory(
+                    directory
+                )
+            )
+
+            directory_grid.addWidget(label, row, 0)
+            directory_grid.addWidget(path_input, row, 1)
+            directory_grid.addWidget(open_button, row, 2)
+
+        storage_layout.addLayout(directory_grid)
+        layout.addWidget(storage_card)
         layout.addStretch(1)
 
+        scroll_area.setWidget(content)
+        root_layout.addWidget(scroll_area, 1)
+
         footer = QHBoxLayout()
+        footer.setContentsMargins(16, 6, 16, 14)
         footer.addStretch(1)
 
         self.save_button = QPushButton("Save")
@@ -151,8 +220,12 @@ class SettingsTab(QWidget):
         self.save_button.clicked.connect(self.saveRequested.emit)
         footer.addWidget(self.save_button)
 
-        layout.addLayout(footer)
+        root_layout.addLayout(footer)
 
+    @staticmethod
+    def _open_directory(path) -> None:
+        if path:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
     def _setup_styles(self):
         self.setStyleSheet(
@@ -163,7 +236,7 @@ class SettingsTab(QWidget):
                 border-radius: 12px;
                 border: 1px solid rgba(30,36,44,0.08);
             }
-            QLabel#card_title {
+            QLabel#settings_card_title {
                 border: none;
                 background: transparent;
                 padding: 0;

@@ -118,7 +118,7 @@ class App(QWidget):
 
         self.setup_tray_icon()
 
-        log_file = Path(self.data_dir) / "neuroclip.log"
+        log_file = Path(self.data_dir) / "cliplm.log"
         configure_app_logger(str(log_file))
         logger = logging.getLogger(__name__)
         logger.info("App initialized successfully")
@@ -204,7 +204,11 @@ class App(QWidget):
         self.clipboard_presenter.ai_presenter = self.ai_presenter
         self.tabs.addTab(self.ai_tab, "AI")
 
-        self.settings_tab = SettingsTab()
+        self.settings_tab = SettingsTab(
+            self.config_dir,
+            self.data_dir,
+            self.cache_dir,
+        )
         self.settings_tab.set_settings(self.settings)
         self.settings_tab.saveRequested.connect(self._save_settings)
         self.tabs.addTab(self.settings_tab, "Settings")

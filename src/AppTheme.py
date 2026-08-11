@@ -573,6 +573,11 @@ QLabel#card_title {
     font-size: 16px;
     font-weight: 700;
 }
+QLabel#settings_card_title {
+    color: #1f2d3d;
+    font-size: 12px;
+    font-weight: 700;
+}
 QLabel#hint_label {
     color: #5f6e81;
     background: #f2f6fb;

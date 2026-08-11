@@ -6,8 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ClipLM — AI Clipboard Manager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap"
     rel="stylesheet">
   <style>
     :root {
@@ -40,42 +41,102 @@
     }
 
     html {
+      background: var(--bg);
       scroll-behavior: smooth;
     }
 
     body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
+      font-family: 'Manrope', 'Segoe UI', sans-serif;
+      background: transparent;
       color: var(--text-1);
       line-height: 1.6;
       overflow-x: hidden;
+      isolation: isolate;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      z-index: 0;
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+
+    body::before {
+      inset: -35%;
+      background:
+        radial-gradient(ellipse 56% 48% at 12% 24%, rgba(75, 136, 251, 0.52) 0%, rgba(75, 136, 251, 0.30) 36%, transparent 72%),
+        radial-gradient(ellipse 52% 46% at 84% 64%, rgba(44, 98, 214, 0.46) 0%, rgba(44, 98, 214, 0.24) 40%, transparent 74%);
+      filter: blur(88px);
+      animation: ambientFog 18s ease-in-out infinite;
+    }
+
+    body::after {
+      inset: -30%;
+      background:
+        radial-gradient(ellipse 48% 44% at 74% 18%, rgba(75, 136, 251, 0.44) 0%, rgba(75, 136, 251, 0.24) 42%, transparent 76%),
+        radial-gradient(ellipse 58% 50% at 26% 82%, rgba(44, 98, 214, 0.40) 0%, rgba(44, 98, 214, 0.21) 44%, transparent 78%);
+      filter: blur(104px);
+      animation: ambientFogReverse 24s ease-in-out infinite;
+    }
+
+    body > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes ambientFog {
+      0%, 100% {
+        opacity: 0.68;
+        transform: translate3d(-4%, -2%, 0) scale(0.96);
+      }
+      50% {
+        opacity: 0.96;
+        transform: translate3d(5%, 3%, 0) scale(1.06);
+      }
+    }
+
+    @keyframes ambientFogReverse {
+      0%, 100% {
+        opacity: 0.56;
+        transform: translate3d(5%, -3%, 0) scale(1.04);
+      }
+      50% {
+        opacity: 0.86;
+        transform: translate3d(-7%, 4%, 0) scale(0.96);
+      }
     }
 
     /* NAV */
     nav {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 12px;
+      left: 50%;
       z-index: 100;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      justify-content: space-between;
-      padding: 0 48px;
+      width: min(calc(100% - 64px), 1320px);
       height: 64px;
-      background: rgba(245, 247, 251, 0.85);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      transform: translateX(-50%);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 999px;
+      background: linear-gradient(150deg, rgba(75, 136, 251, 0.70), rgba(44, 98, 214, 0.64));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 30px rgba(44, 98, 214, 0.22);
+      -webkit-backdrop-filter: blur(16px) saturate(135%);
+      backdrop-filter: blur(16px) saturate(135%);
     }
 
     .nav-logo {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-family: 'Syne', sans-serif;
+      font-family: 'Manrope', 'Segoe UI', sans-serif;
       font-weight: 800;
       font-size: 20px;
-      color: var(--text-head);
+      color: #ffffff;
       text-decoration: none;
     }
 
@@ -98,26 +159,46 @@
     .nav-links {
       display: flex;
       align-items: center;
+      justify-self: center;
       gap: 32px;
       list-style: none;
     }
 
     .nav-links a {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-2);
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffffff;
       text-decoration: none;
       transition: color 0.2s;
     }
 
     .nav-links a:hover {
-      color: var(--blue);
+      color: #ffffff;
     }
 
     .nav-cta {
       display: flex;
       align-items: center;
+      justify-self: end;
       gap: 12px;
+    }
+
+    .nav-download {
+      padding: 9px 25px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .nav-download:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.36);
+      transform: translateY(-1px);
     }
 
     .btn-primary {
@@ -126,7 +207,7 @@
       color: #fff;
       border: none;
       border-radius: 10px;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Manrope', 'Segoe UI', sans-serif;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
@@ -149,7 +230,7 @@
       color: var(--text-2);
       border: 1px solid var(--border);
       border-radius: 10px;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Manrope', 'Segoe UI', sans-serif;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
@@ -164,7 +245,7 @@
 
     /* HERO */
     .hero {
-      padding: 152px 48px 100px;
+      padding: 140px 48px 96px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -185,52 +266,14 @@
       pointer-events: none;
     }
 
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      background: var(--accent-soft);
-      border: 1px solid rgba(26, 115, 232, 0.18);
-      border-radius: 100px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--blue);
-      margin-bottom: 28px;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-
-    .hero-badge .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--blue-g1);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-        transform: scale(1);
-      }
-
-      50% {
-        opacity: 0.6;
-        transform: scale(1.3);
-      }
-    }
-
     .hero h1 {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: clamp(44px, 6vw, 80px);
-      line-height: 1.08;
+      font-family: 'Manrope', 'Segoe UI', sans-serif;
+      font-weight: 700;
+      font-size: clamp(34px, 4.2vw, 54px);
+      line-height: 1.16;
       color: var(--text-head);
-      max-width: 860px;
-      letter-spacing: -0.03em;
+      max-width: 780px;
+      letter-spacing: -0.025em;
       margin-bottom: 24px;
     }
 
@@ -246,7 +289,7 @@
       font-weight: 400;
       color: var(--text-2);
       max-width: 520px;
-      margin-bottom: 40px;
+      margin-bottom: 32px;
       line-height: 1.7;
     }
 
@@ -254,14 +297,34 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      margin-bottom: 72px;
+      margin-bottom: 6px;
     }
 
-    .btn-primary-lg {
-      padding: 14px 28px;
-      font-size: 15px;
-      border-radius: 12px;
+    .os-download {
+      min-width: 280px;
+      justify-content: center;
+      gap: 11px;
+      padding: 16px 32px;
+      border-radius: 999px;
+      font-size: 19px;
       box-shadow: 0 4px 18px rgba(26, 115, 232, 0.32);
+    }
+
+    .os-download[hidden] {
+      display: none;
+    }
+
+    .os-download-icon,
+    .os-download-icon svg {
+      width: 23px;
+      height: 23px;
+    }
+
+    .hero-platforms {
+      margin-top: 12px;
+      color: var(--text-2);
+      font-size: 14px;
+      font-weight: 600;
     }
 
     .hero-note {
@@ -271,222 +334,446 @@
       margin-top: 10px;
     }
 
-    /* NEW HERO IMAGE WRAPPER */
-    .hero-image-wrap {
-      width: 100%;
-      max-width: 600px;
+    /* VERTICAL FEATURE STORY */
+    .feature-story {
+      max-width: 1400px;
       margin: 0 auto;
-      border-radius: 12px;
-      box-shadow: var(--shadow-lg);
-      border: 1px solid var(--border);
-      overflow: hidden;
-      background: var(--surface);
+      padding: 112px 48px 84px;
     }
 
-    .hero-image-wrap img {
-      width: 100%;
-      height: auto;
-      display: block;
-      /* Maintain sharpness on downscaled screenshot */
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: high-quality;
-      transform: translateZ(0);
-    }
-
-    /* FEATURES (ALTERNATING LIST) */
-    .section {
-      padding: 100px 48px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .feature-list {
+    .section-heading {
       display: flex;
-      flex-direction: column;
-      gap: 120px;
+      align-items: end;
+      justify-content: space-between;
+      gap: 48px;
+      margin-bottom: 70px;
     }
 
-    .feature-row {
-      display: flex;
-      align-items: center;
-      gap: 80px;
+    .section-title {
+      max-width: 660px;
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      font-size: clamp(34px, 5vw, 54px);
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+      color: var(--text-head);
     }
 
-    .feature-row:nth-child(even) {
-      flex-direction: row-reverse;
-    }
-
-    .feature-text {
-      flex: 1;
+    .section-intro {
+      max-width: 430px;
+      font-size: 15px;
+      color: var(--text-2);
+      line-height: 1.7;
     }
 
     .section-label {
+      margin-bottom: 12px;
+      color: var(--blue);
       font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--blue);
-      margin-bottom: 14px;
     }
 
-    .feature-text h3 {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: clamp(30px, 4vw, 42px);
-      line-height: 1.15;
-      color: var(--text-head);
-      letter-spacing: -0.02em;
-      margin-bottom: 20px;
+    .story-layout {
+      display: grid;
+      grid-template-columns: minmax(330px, 390px) minmax(743px, 1fr);
+      grid-template-areas: "steps visual";
+      gap: clamp(40px, 4vw, 64px);
+      align-items: start;
     }
 
-    .feature-text p {
-      font-size: 16px;
-      color: var(--text-2);
-      line-height: 1.7;
-      margin-bottom: 28px;
+    .story-steps {
+      grid-area: steps;
     }
 
-    .feature-list-items {
-      list-style: none;
+    .story-step {
+      min-height: clamp(390px, 50vh, 520px);
       display: flex;
-      flex-direction: column;
-      gap: 16px;
+      align-items: center;
+      opacity: 0.38;
+      transition: opacity 0.35s ease;
+      outline: none;
     }
 
-    .feature-list-items li {
+    .story-step-inner {
       position: relative;
-      padding-left: 26px;
+      padding: 30px 12px 30px 34px;
+      border-left: 2px solid var(--accent-hi);
+      transition: border-color 0.3s ease;
+    }
+
+    .story-step.active {
+      opacity: 1;
+    }
+
+    .story-step.active .story-step-inner {
+      border-left-color: var(--blue);
+    }
+
+    .story-step:focus-visible .story-step-inner {
+      border-radius: 0 14px 14px 0;
+      outline: 3px solid rgba(26, 115, 232, 0.22);
+      outline-offset: 6px;
+    }
+
+    .story-index {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 18px;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .story-index::before {
+      content: "";
+      width: 22px;
+      height: 2px;
+      background: currentColor;
+    }
+
+    .story-step h3 {
+      max-width: 430px;
+      margin-bottom: 16px;
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      color: var(--text-head);
+      font-size: clamp(27px, 3vw, 39px);
+      line-height: 1.12;
+      letter-spacing: -0.025em;
+    }
+
+    .story-step p {
+      max-width: 440px;
+      color: var(--text-2);
       font-size: 15px;
-      font-weight: 500;
-      color: var(--text-1);
-      line-height: 1.6;
+      line-height: 1.75;
     }
 
-    .feature-list-items li::before {
-      content: '';
-      position: absolute;
-      top: 7px;
-      left: 0;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--blue-g1), var(--blue-g3));
-      box-shadow: 0 0 0 4px rgba(75, 136, 251, 0.1);
+    .story-feature-list {
+      display: grid;
+      gap: 7px;
+      margin-top: 18px;
+      list-style: none;
     }
 
-    .feature-image-wrap {
-      flex: 1;
-      position: relative;
-      border-radius: 12px;
-      box-shadow: var(--shadow-md);
-      overflow: hidden;
-      border: 1px solid var(--border);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    .story-feature-list li {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 9px;
+      align-items: start;
+      padding: 9px 10px;
+      border: 1px solid rgba(26, 115, 232, 0.11);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.62);
+      box-shadow: 0 3px 12px rgba(26, 83, 162, 0.04);
+    }
+
+    .story-feature-label {
+      padding-top: 1px;
+      color: var(--blue);
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .story-feature-text {
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.48;
+    }
+
+    .story-shortcuts {
+      margin-top: 10px;
+      padding: 9px 10px 10px;
+      border: 1px solid rgba(26, 115, 232, 0.12);
+      border-radius: 10px;
+      background: var(--accent-soft);
+    }
+
+    .story-detail-title {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--text-deep);
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .story-shortcut-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+    }
+
+    .story-shortcut {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-2);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .story-shortcut kbd {
+      min-width: 24px;
+      padding: 2px 6px;
+      border: 1px solid rgba(26, 115, 232, 0.20);
+      border-bottom-width: 2px;
+      border-radius: 5px;
       background: var(--surface);
+      color: var(--text-deep);
+      font: 700 10px/1.3 "Manrope", "Segoe UI", sans-serif;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(26, 83, 162, 0.08);
     }
 
-    .feature-image-wrap:hover {
-      transform: translateY(-6px);
-      box-shadow: var(--shadow-lg);
+    .story-visual-column {
+      grid-area: visual;
+      align-self: stretch;
     }
 
-    .feature-image-wrap img {
+    .story-visual {
+      position: sticky;
+      top: max(92px, calc(50vh - 314px));
+      width: 100%;
+      max-width: 745px;
+      margin: 0 auto;
+      padding: 18px;
+      border: 1px solid rgba(26, 115, 232, 0.12);
+      border-radius: 26px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(238, 244, 255, 0.92));
+      box-shadow: 0 24px 70px rgba(26, 83, 162, 0.16);
+    }
+
+    .story-screen {
+      width: 707px;
+      max-width: 100%;
+      margin: 0 auto;
+      overflow: hidden;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      background: #e9eef7;
+      box-shadow: 0 17px 42px rgba(22, 48, 80, 0.20);
+    }
+
+    .story-screen img {
+      display: block;
       width: 100%;
       height: auto;
-      display: block;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      transition: opacity 0.18s ease;
     }
 
-    /* STATS */
-    .stats-section {
-      padding: 80px 48px;
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 24px;
+    .story-screen img.is-changing {
+      opacity: 0.32;
     }
 
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px 24px;
-      text-align: center;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .stat-num {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 40px;
-      line-height: 1;
-      background: linear-gradient(135deg, var(--blue-g1), var(--blue-g3));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
-    }
-
-    .stat-label {
-      font-size: 13px;
-      color: var(--text-2);
-      font-weight: 500;
-    }
-
-    /* CTA */
-    .cta-section {
-      padding: 100px 48px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .cta-section::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 700px;
-      height: 500px;
-      background: radial-gradient(ellipse, rgba(75, 136, 251, 0.12) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .cta-card {
-      max-width: 680px;
-      margin: 0 auto;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 60px 48px;
-      box-shadow: var(--shadow-lg);
-      position: relative;
-      z-index: 1;
-    }
-
-    .cta-card h2 {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: clamp(28px, 4vw, 40px);
-      line-height: 1.1;
-      color: var(--text-head);
-      letter-spacing: -0.025em;
-      margin-bottom: 16px;
-    }
-
-    .cta-card p {
-      font-size: 16px;
-      color: var(--text-2);
-      margin-bottom: 32px;
-      line-height: 1.7;
-    }
-
-    .cta-actions {
+    .story-progress {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 7px;
+      padding-top: 17px;
+    }
+
+    .story-dot {
+      width: 22px;
+      height: 4px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: var(--accent-hi);
+      cursor: pointer;
+      transition: width 0.2s ease, background 0.2s ease;
+    }
+
+    .story-dot.active {
+      width: 42px;
+      background: var(--blue);
+    }
+
+    .story-dot:focus-visible {
+      outline: 3px solid rgba(26, 115, 232, 0.28);
+      outline-offset: 4px;
+    }
+
+    .download-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .availability {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--text-deep);
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* INSTALL */
+    .install-section {
+      padding: 108px 48px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: radial-gradient(circle at 80% 10%, rgba(75, 136, 251, 0.12), transparent 26%), var(--surface);
+    }
+
+    .install-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .platform-tabs {
+      display: inline-flex;
+      gap: 5px;
+      padding: 5px;
+      margin: 32px 0 18px;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: var(--accent-soft);
+    }
+
+    .platform-tab {
+      padding: 9px 15px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text-2);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    }
+
+    .platform-tab.active {
+      background: var(--surface);
+      color: var(--text-head);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .install-panel {
+      display: none;
+      padding: 32px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface-2);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .install-panel.active {
+      display: block;
+      animation: panelIn 0.25s ease both;
+    }
+
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .installer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+    }
+
+    .installer-summary {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .platform-mark {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      background: linear-gradient(145deg, var(--blue-g1), var(--blue-g3));
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(26, 115, 232, 0.20);
+    }
+
+    .install-copy h3 {
+      margin-bottom: 5px;
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      font-size: 22px;
+      color: var(--text-head);
+    }
+
+    .install-copy p {
+      max-width: 510px;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .install-meta {
+      margin-top: 8px;
+      color: var(--text-2);
+      font-size: 11px;
+    }
+
+    .terminal {
+      margin-top: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(22, 58, 112, 0.12);
+      border-radius: 14px;
+      background: #172337;
+    }
+
+    .terminal-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .terminal-label {
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .copy-command {
+      padding: 5px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .terminal pre {
+      margin: 0;
+      padding: 18px;
+      overflow-x: auto;
+      color: #D9E8FF;
+      font: 12px/1.75 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     /* FOOTER */
@@ -502,7 +789,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-family: 'Syne', sans-serif;
+      font-family: 'Manrope', 'Segoe UI', sans-serif;
       font-weight: 700;
       font-size: 15px;
       color: var(--text-head);
@@ -532,9 +819,12 @@
     }
 
     /* RESPONSIVE */
-    @media (max-width: 900px) {
+    @media (max-width: 1220px) {
       nav {
-        padding: 0 24px;
+        grid-template-columns: 1fr auto;
+        width: calc(100% - 24px);
+        height: 62px;
+        padding: 0 14px 0 16px;
       }
 
       .nav-links {
@@ -545,28 +835,55 @@
         padding: 120px 24px 80px;
       }
 
-      .section {
-        padding: 70px 24px;
+      .feature-story {
+        padding: 78px 24px 64px;
       }
 
-      .feature-row,
-      .feature-row:nth-child(even) {
+      .section-heading {
+        align-items: flex-start;
         flex-direction: column;
-        gap: 40px;
+        gap: 18px;
+        margin-bottom: 42px;
       }
 
-      .stats-section {
-        grid-template-columns: 1fr 1fr;
-        padding: 60px 24px;
+      .story-layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+          "visual"
+          "steps";
+        gap: 24px;
       }
 
-      .cta-section {
-        padding: 70px 24px;
+      .story-visual-column {
+        display: contents;
       }
 
-      .cta-card {
-        padding: 40px 28px;
+      .story-visual {
+        grid-area: visual;
+        align-self: start;
+        top: 76px;
+        z-index: 20;
+        max-width: 737px;
+        margin: 0 auto;
+        padding: 14px;
+        border-radius: 20px;
+        box-shadow: 0 18px 48px rgba(26, 83, 162, 0.17);
       }
+
+      .story-step {
+        min-height: clamp(360px, 48vh, 460px);
+      }
+
+      .story-step-inner {
+        max-width: 620px;
+        margin: 0 auto;
+      }
+
+      .install-section {
+        padding: 76px 24px;
+      }
+
+
 
       footer {
         flex-direction: column;
@@ -576,14 +893,71 @@
     }
 
     @media (max-width: 600px) {
-      .stats-section {
-        grid-template-columns: 1fr;
-      }
-
-      .hero-actions,
-      .cta-actions {
+      .hero-actions {
         flex-direction: column;
         align-items: stretch;
+      }
+
+      .os-download {
+        min-width: 0;
+        padding-right: 22px;
+        padding-left: 22px;
+        font-size: 17px;
+      }
+
+      .platform-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        width: 100%;
+      }
+
+      .platform-tab {
+        justify-content: center;
+        padding: 10px 8px;
+      }
+
+      .install-panel {
+        padding: 24px;
+      }
+
+      .feature-story {
+        padding-right: 16px;
+        padding-left: 16px;
+      }
+
+      .story-visual {
+        top: 72px;
+        padding: 10px;
+        border-radius: 16px;
+      }
+
+      .story-progress {
+        padding-top: 12px;
+      }
+
+      .story-dot {
+        width: 15px;
+      }
+
+      .story-dot.active {
+        width: 30px;
+      }
+
+      .story-step {
+        min-height: clamp(340px, 48vh, 420px);
+      }
+
+      .story-step-inner {
+        padding: 28px 8px 28px 24px;
+      }
+
+      .story-step h3 {
+        font-size: 27px;
+      }
+
+      .installer-row {
+        align-items: flex-start;
+        flex-direction: column;
       }
     }
 
@@ -600,28 +974,34 @@
       }
     }
 
-    .hero-badge {
-      animation: fadeUp 0.5s ease both;
-    }
-
     .hero h1 {
-      animation: fadeUp 0.5s 0.1s ease both;
+      animation: fadeUp 0.5s 0.1s ease backwards;
     }
 
     .hero-desc {
-      animation: fadeUp 0.5s 0.2s ease both;
+      animation: fadeUp 0.5s 0.2s ease backwards;
     }
 
     .hero-actions {
-      animation: fadeUp 0.5s 0.3s ease both;
+      animation: fadeUp 0.5s 0.3s ease backwards;
     }
 
     .hero-note {
-      animation: fadeUp 0.5s 0.3s ease both;
+      animation: fadeUp 0.5s 0.3s ease backwards;
     }
 
-    .hero-image-wrap {
-      animation: fadeUp 0.7s 0.4s ease both;
+    :focus-visible {
+      outline: 3px solid rgba(26, 115, 232, 0.28);
+      outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
     }
 
     /* Scrollbar */
@@ -652,222 +1032,448 @@
     </a>
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
-      <li><a href="#download">Download</a></li>
+      <li><a href="#install">Install</a></li>
     </ul>
     <div class="nav-cta">
-      <a href="#" class="btn-ghost">Docs</a>
-      <a href="#download" class="btn-primary">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-        Download free
-      </a>
+      <a class="nav-download" href="#install">Download</a>
     </div>
   </nav>
 
   <!-- HERO -->
   <section class="hero">
-    <div class="hero-badge">
-      <span class="dot"></span>
-      Now in public beta
-    </div>
-    <h1>Your clipboard,<br><span class="accent">finally intelligent.</span></h1>
-    <p class="hero-desc">ClipLM captures everything you copy — and turns it into something you can actually use.
-      History, snippets, translation, and AI in one compact tool.</p>
+    <h1><span class="accent">ClipLM</span><br>Your intelligent clipboard workspace</h1>
+    <p class="hero-desc">Searchable clipboard history, reusable AI prompts, translation, favorites, and notes in one focused desktop tool.</p>
     <div class="hero-actions">
-      <a href="#download" class="btn-primary btn-primary-lg">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-        Download for macOS
-      </a>
-      <a href="#" class="btn-ghost" style="padding:14px 22px;font-size:15px;border-radius:12px;">View on GitHub</a>
-    </div>
-    <p class="hero-note">Free. Works offline. No account needed.</p>
-
-    <!-- APP SCREENSHOT -->
-    <div class="hero-image-wrap" style="margin-top: 40px;">
-      <img src="clipboard-tab.png" alt="ClipLM Interface Capture Window" loading="lazy">
-    </div>
-  </section>
-
-  <!-- FEATURES (Alternating List) -->
-  <section class="section" id="features">
-    <div class="feature-list">
-
-      <!-- Feature 1: AI Tools -->
-      <div class="feature-row scroll-reveal">
-        <div class="feature-text">
-          <div class="section-label">AI Workflows</div>
-          <h3>Instant intelligence. <br>No context switching.</h3>
-          <p>Maintain a personal library of reusable AI prompts. Whether you need to summarize an article, rewrite a
-            draft, classify data, or extract components from an image, it all runs directly against whatever is
-            currently stored in your clipboard.</p>
-          <ul class="feature-list-items">
-            <li>Select a saved prompt to instantly process copied text or images.</li>
-            <li>View the intelligent output directly inside the app.</li>
-            <li>Eliminates the friction of opening browser tabs and pasting manually.</li>
-          </ul>
-        </div>
-        <div class="feature-image-wrap">
-          <img src="ai-tab.png" alt="ClipLM AI Action Interface" loading="lazy">
-        </div>
-      </div>
-
-      <!-- Feature 2: Translation -->
-      <div class="feature-row scroll-reveal">
-        <div class="feature-text">
-          <div class="section-label">Translation</div>
-          <h3>Break the <br>language barrier.</h3>
-          <p>A dedicated native translation workspace that leverages your clipboard. The text you copy flows
-            automatically into the input field. Pick your language pairing, click once, and pull the translated output
-            directly to your cursor.</p>
-          <ul class="feature-list-items">
-            <li>Auto-detects the source language effortlessly.</li>
-            <li>Stores your frequent language combinations in memory.</li>
-            <li>Replaces the need for external translation websites entirely.</li>
-          </ul>
-        </div>
-        <div class="feature-image-wrap">
-          <img src="translate-tab.png" alt="ClipLM Translation Interface" loading="lazy">
-        </div>
-      </div>
-
-      <!-- Feature 3: Notes -->
-      <div class="feature-row scroll-reveal">
-        <div class="feature-text">
-          <div class="section-label">Notes Workspace</div>
-          <h3>Your temporary thoughts, permanently saved.</h3>
-          <p>A built-in lightweight scratchpad for the information that should outlive the fast pace of your clipboard.
-            Take manual notes with distinct titles and formatted bodies, ensuring your ideas are never further than a
-            hotkey away.</p>
-          <ul class="feature-list-items">
-            <li>Create clean, structured text notes natively.</li>
-            <li>Easily transfer bodies of text between different applications.</li>
-            <li>Perfect for saving meeting agendas, drafts, and immediate to-do items.</li>
-          </ul>
-        </div>
-        <div class="feature-image-wrap">
-          <img src="notes-tab.png" alt="ClipLM Notes Interface" loading="lazy">
-        </div>
-      </div>
-
-      <!-- Feature 4: Favorites -->
-      <div class="feature-row scroll-reveal">
-        <div class="feature-text">
-          <div class="section-label">Saved Snippets</div>
-          <h3>A library for the <br>things you re-use.</h3>
-          <p>Protect important content from getting washed away by an overflowing clipboard history. Simply "star" any
-            item to instantly push it into your permanent Favorites list. Boilerplates are always right where you left
-            them.</p>
-          <ul class="feature-list-items">
-            <li>Access frequently used templates, code, links, and replies.</li>
-            <li>Bypass rewriting the exact same content over and over.</li>
-            <li>Directly copy items without leaving your current primary app window.</li>
-          </ul>
-        </div>
-        <div class="feature-image-wrap">
-          <img src="favorites-tab.png" alt="ClipLM Favorites Interface" loading="lazy">
-        </div>
-      </div>
-
-      <!-- Feature 5: Settings / Privacy -->
-      <div class="feature-row scroll-reveal">
-        <div class="feature-text">
-          <div class="section-label">Settings & Privacy</div>
-          <h3>Your machine. <br>Your configurations.</h3>
-          <p>ClipLM believes in keeping your active workspace private and giving you the power to choose what powers
-            your tools. Turn workflow capabilities on or off as needed, securely on your own filesystem.</p>
-          <ul class="feature-list-items">
-            <li>Bring your own API keys for intelligent features—zero subscriptions required.</li>
-            <li>Works seamlessly with OpenAI, Anthropic, or even custom local endpoints.</li>
-            <li>Local-first architecture ensures entirely offline usage for native features.</li>
-          </ul>
-        </div>
-        <div class="feature-image-wrap">
-          <img src="settings-tab.png" alt="ClipLM Settings Interface" loading="lazy">
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- STATS -->
-  <div style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
-    <div class="stats-section">
-      <div class="stat-card scroll-reveal">
-        <div class="stat-num">5</div>
-        <div class="stat-label">Core workflows</div>
-      </div>
-      <div class="stat-card scroll-reveal">
-        <div class="stat-num">∞</div>
-        <div class="stat-label">Clipboard entries stored</div>
-      </div>
-      <div class="stat-card scroll-reveal">
-        <div class="stat-num">100%</div>
-        <div class="stat-label">Local — no cloud sync</div>
-      </div>
-      <div class="stat-card scroll-reveal">
-        <div class="stat-num">0</div>
-        <div class="stat-label">Accounts required</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CTA -->
-  <section class="cta-section" id="download">
-    <div class="cta-card scroll-reveal">
-      <h2>Stop losing things<br>you copy.</h2>
-      <p>ClipLM is free to download. Works on macOS and Windows. No account, no telemetry, no lock-in.</p>
-      <div class="cta-actions">
-        <a href="#" class="btn-primary btn-primary-lg">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
+      <a id="os-download-button" href="#install" class="btn-primary os-download" hidden>
+        <span class="os-download-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Download for macOS
-        </a>
-        <a href="#" class="btn-ghost" style="padding:14px 20px;font-size:15px;border-radius:12px;">Windows ↗</a>
+        </span>
+        <span>Download for <span id="os-download-name"></span></span>
+      </a>
+    </div>
+    <p class="hero-platforms">Available on macOS, Windows and Linux</p>
+    <p class="hero-note">Local-first · No account required · Bring your own AI provider</p>
+
+  </section>
+
+  <!-- FEATURES -->
+  <section class="feature-story" id="features">
+    <div class="section-heading scroll-reveal">
+      <div>
+        <div class="section-label">Feature guide</div>
+        <h2 class="section-title">What each workspace does.</h2>
       </div>
-      <p style="margin-top:20px;font-size:12px;color:var(--text-2);opacity:0.65;">macOS 12+ · Windows 10+ · MIT License
-      </p>
+    </div>
+
+    <div class="story-layout">
+      <div class="story-visual-column">
+        <div class="story-visual" aria-live="polite">
+          <div class="story-screen">
+            <img id="story-preview" src="01-clipboard.png" alt="ClipLM searchable clipboard history">
+          </div>
+          <div class="story-progress" aria-label="Feature progress">
+            <button class="story-dot active" type="button" data-story-target="clipboard" aria-label="Show Clipboard" aria-current="step"></button>
+            <button class="story-dot" type="button" data-story-target="favorites" aria-label="Show Favorites"></button>
+            <button class="story-dot" type="button" data-story-target="notes" aria-label="Show Notes"></button>
+            <button class="story-dot" type="button" data-story-target="translate" aria-label="Show Translate"></button>
+            <button class="story-dot" type="button" data-story-target="ai" aria-label="Show AI"></button>
+            <button class="story-dot" type="button" data-story-target="settings" aria-label="Show Settings"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="story-steps">
+        <article class="story-step active" tabindex="0" data-story="clipboard" data-image="01-clipboard.png" data-alt="ClipLM searchable clipboard history">
+          <div class="story-step-inner">
+            <span class="story-index">01 · Capture</span>
+            <h3>Search beyond the preview.</h3>
+            <p>Clipboard keeps copied text and images in local history. Search queries the stored content, so results are not limited to the shortened text shown on each card.</p>
+            <ul class="story-feature-list">
+              <li><span class="story-feature-label">History</span><span class="story-feature-text">Newest clips appear first with text or image previews.</span></li>
+              <li><span class="story-feature-label">Actions</span><span class="story-feature-text">Copy, paste, or save an item to Favorites directly from its card.</span></li>
+              <li><span class="story-feature-label">Cleanup</span><span class="story-feature-text">Clear the complete history from the overflow menu after confirmation.</span></li>
+            </ul>
+            <div class="story-shortcuts" aria-label="Clipboard keyboard shortcuts">
+              <span class="story-detail-title">Keyboard shortcuts</span>
+              <div class="story-shortcut-list">
+                <span class="story-shortcut"><kbd>C</kbd>Open Clipboard tab</span>
+                <span class="story-shortcut"><kbd>/</kbd>Focus search</span>
+                <span class="story-shortcut"><kbd>Esc</kbd>Leave search</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="story-step" tabindex="0" data-story="favorites" data-image="02-favorites.png" data-alt="ClipLM favorites library">
+          <div class="story-step-inner">
+            <span class="story-index">02 · Keep</span>
+            <h3>Keep the clips worth reusing.</h3>
+            <p>Favorites separates reusable content from temporary clipboard history. Saved items remain searchable and retain direct copy and paste controls.</p>
+            <ul class="story-feature-list">
+              <li><span class="story-feature-label">Save</span><span class="story-feature-text">Promote any clipboard card into the persistent Favorites list.</span></li>
+              <li><span class="story-feature-label">Reuse</span><span class="story-feature-text">Copy an item or place it in the clipboard and trigger paste in one action.</span></li>
+              <li><span class="story-feature-label">Remove</span><span class="story-feature-text">Enable Delete from the overflow menu to expose card checkboxes.</span></li>
+            </ul>
+            <div class="story-shortcuts" aria-label="Favorites keyboard shortcuts">
+              <span class="story-detail-title">Keyboard shortcuts</span>
+              <div class="story-shortcut-list">
+                <span class="story-shortcut"><kbd>F</kbd>Open Favorites tab</span>
+                <span class="story-shortcut"><kbd>/</kbd>Focus search</span>
+                <span class="story-shortcut"><kbd>Esc</kbd>Leave search</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="story-step" tabindex="0" data-story="notes" data-image="03-notes.png" data-alt="ClipLM notes workspace">
+          <div class="story-step-inner">
+            <span class="story-index">03 · Shape</span>
+            <h3>Give useful text a permanent place.</h3>
+            <p>Notes stores a title and body as a durable local entry. Search works on stored note content rather than only the preview visible in the list.</p>
+            <ul class="story-feature-list">
+              <li><span class="story-feature-label">Create</span><span class="story-feature-text">Add a titled note from the page header and validate both fields before saving.</span></li>
+              <li><span class="story-feature-label">Edit</span><span class="story-feature-text">Open an existing note for editing, or copy and paste its content from the card.</span></li>
+              <li><span class="story-feature-label">Remove</span><span class="story-feature-text">Use overflow Delete mode to show removal controls on every note.</span></li>
+            </ul>
+            <div class="story-shortcuts" aria-label="Notes keyboard shortcuts">
+              <span class="story-detail-title">Keyboard shortcuts</span>
+              <div class="story-shortcut-list">
+                <span class="story-shortcut"><kbd>N</kbd>Open Notes tab</span>
+                <span class="story-shortcut"><kbd>/</kbd>Focus search</span>
+                <span class="story-shortcut"><kbd>Esc</kbd>Leave search</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="story-step" tabindex="0" data-story="translate" data-image="04-translate.png" data-alt="ClipLM translation workspace">
+          <div class="story-step-inner">
+            <span class="story-index">04 · Translate</span>
+            <h3>Translate without switching context.</h3>
+            <p>Translate provides separate source and destination language selectors and shows the active provider directly on the Translate button.</p>
+            <ul class="story-feature-list">
+              <li><span class="story-feature-label">Languages</span><span class="story-feature-text">Use automatic source detection or reverse explicit source and destination selections.</span></li>
+              <li><span class="story-feature-label">Provider</span><span class="story-feature-text">Choose Google Translate or the LLM endpoint configured in Settings.</span></li>
+              <li><span class="story-feature-label">Long text</span><span class="story-feature-text">Source and destination scroll positions stay synchronized by relative progress.</span></li>
+            </ul>
+            <div class="story-shortcuts" aria-label="Translate keyboard shortcuts">
+              <span class="story-detail-title">Keyboard shortcuts</span>
+              <div class="story-shortcut-list">
+                <span class="story-shortcut"><kbd>T</kbd>Open Translate tab</span>
+                <span class="story-shortcut"><kbd>T</kbd>Translate when tab is open</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="story-step" tabindex="0" data-story="ai" data-image="05-ai.png" data-alt="ClipLM reusable AI prompt workflow">
+          <div class="story-step-inner">
+            <span class="story-index">05 · Transform</span>
+            <h3>Run your prompts on copied content.</h3>
+            <p>AI runs a selected reusable prompt against copied text or image input through the OpenAI-compatible endpoint configured in Settings.</p>
+            <ul class="story-feature-list">
+              <li><span class="story-feature-label">Run</span><span class="story-feature-text">Click a prompt row to select it and execute it against the current copied input.</span></li>
+              <li><span class="story-feature-label">Manage</span><span class="story-feature-text">Add or reload prompts; use the row menu to edit or delete them. Duplicate names are rejected.</span></li>
+              <li><span class="story-feature-label">Output</span><span class="story-feature-text">Hover over the result to reveal Copy and Paste actions.</span></li>
+            </ul>
+            <div class="story-shortcuts" aria-label="AI keyboard shortcuts">
+              <span class="story-detail-title">Keyboard shortcuts</span>
+              <div class="story-shortcut-list">
+                <span class="story-shortcut"><kbd>A</kbd>Open AI tab</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="story-step" tabindex="0" data-story="settings" data-image="06-settings.png" data-alt="ClipLM appearance and provider settings">
+          <div class="story-step-inner">
+            <span class="story-index">06 · Configure</span>
+            <h3>Make the workflow fit your setup.</h3>
+            <p>Settings keeps appearance, AI, translation, and storage configuration in separate compact sections and saves them in the user configuration directory.</p>
+            <ul class="story-feature-list">
+              <li><span class="story-feature-label">Appearance</span><span class="story-feature-text">Select an accent palette and switch between light and dark modes.</span></li>
+              <li><span class="story-feature-label">Services</span><span class="story-feature-text">Set the OpenAI-compatible endpoint, model, API key, translation provider, and tab visibility.</span></li>
+              <li><span class="story-feature-label">Files</span><span class="story-feature-text">View and open the config, data, and cache directories from one place.</span></li>
+            </ul>
+            <div class="story-shortcuts" aria-label="Settings keyboard shortcuts">
+              <span class="story-detail-title">Keyboard shortcuts</span>
+              <div class="story-shortcut-list">
+                <span class="story-shortcut"><kbd>S</kbd>Open Settings tab</span>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- INSTALLATION -->
+  <section class="install-section" id="install">
+    <div class="install-inner">
+      <div class="section-label">Install ClipLM</div>
+      <div class="platform-tabs" role="tablist" aria-label="Installation platform">
+        <button class="platform-tab active" type="button" role="tab" aria-selected="true" data-platform="linux">Debian / Ubuntu</button>
+        <button class="platform-tab" type="button" role="tab" aria-selected="false" data-platform="windows">Windows</button>
+        <button class="platform-tab" type="button" role="tab" aria-selected="false" data-platform="mac">macOS</button>
+      </div>
+
+      <div class="install-panel active" role="tabpanel" data-panel="linux">
+        <div class="installer-row">
+          <div class="installer-summary">
+            <div class="platform-mark">deb</div>
+            <div class="install-copy"><h3>Debian / Ubuntu</h3><p>Use the signed APT repository for managed updates, or download a standalone package.</p><div class="install-meta">v0.1.0 · Debian 12+ · Ubuntu 22.04+ · x86_64</div></div>
+          </div>
+          <div class="download-actions">
+            <a class="btn-primary" href="https://packages.cliplm.org/releases/0.1.0/cliplm_0.1.0_amd64.deb">Download .deb</a>
+            <a class="btn-ghost" href="https://packages.cliplm.org/releases/0.1.0/cliplm-0.1.0-amd64.AppImage">AppImage</a>
+          </div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-top"><span class="terminal-label">Signed APT repository</span><button class="copy-command" type="button" data-copy-target="linux-commands">Copy commands</button></div>
+          <pre id="linux-commands">sudo apt update &amp;&amp; sudo apt install -y curl gnupg
+curl -fsSL https://packages.cliplm.org/cliplm-archive-key.asc | gpg --dearmor | sudo tee /usr/share/keyrings/cliplm-archive-keyring.gpg &gt;/dev/null
+echo "deb [signed-by=/usr/share/keyrings/cliplm-archive-keyring.gpg] https://packages.cliplm.org/apt stable main" | sudo tee /etc/apt/sources.list.d/cliplm.list
+sudo apt update
+sudo apt install cliplm</pre>
+        </div>
+      </div>
+
+      <div class="install-panel" role="tabpanel" data-panel="windows" hidden>
+        <div class="installer-row">
+          <div class="installer-summary">
+            <div class="platform-mark">win</div>
+            <div class="install-copy"><h3>Windows</h3><p>A signed 64-bit installer is on the release roadmap.</p><div class="install-meta">Planned · Installer not published yet</div></div>
+          </div>
+          <span class="availability">In development</span>
+        </div>
+      </div>
+
+      <div class="install-panel" role="tabpanel" data-panel="mac" hidden>
+        <div class="installer-row">
+          <div class="installer-summary">
+            <div class="platform-mark">mac</div>
+            <div class="install-copy"><h3>macOS</h3><p>A packaged macOS build is on the release roadmap.</p><div class="install-meta">Planned · DMG not published yet</div></div>
+          </div>
+          <span class="availability">In development</span>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- FOOTER -->
   <footer>
     <div class="footer-logo">
-      <div class="nav-logo-icon" style="width:26px;height:26px;border-radius:7px;">
-        <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;">
-          <path d="M5 12V5C5 3.89543 5.89543 3 7 3C8.10457 3 9 3.89543 9 5V13C9 14.1046 9.89543 15 11 15C12.1046 15 13 14.1046 13 13V5" 
-            stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M5 12L13 7" stroke="white" stroke-width="2.2" stroke-linecap="round" />
-        </svg>
+      <div class="nav-logo-icon" style="width:26px;height:26px;">
+        <img src="app.svg" alt="" style="width:24px;height:24px;">
       </div>
       ClipLM
     </div>
     <ul class="footer-links">
-      <li><a href="#">GitHub</a></li>
-      <li><a href="#">Docs</a></li>
-      <li><a href="#">Changelog</a></li>
-      <li><a href="#">Privacy</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#install">Install</a></li>
     </ul>
-    <span class="footer-copy">© 2025 ClipLM. MIT License.</span>
+    <span class="footer-copy">© 2026 ClipLM.</span>
   </footer>
 
   <script>
+    const storySteps = [...document.querySelectorAll(".story-step")];
+    const storyDots = [...document.querySelectorAll(".story-dot")];
+    const storyPreview = document.getElementById("story-preview");
+    const storyVisual = document.querySelector(".story-visual");
+    let activeStory = "clipboard";
+
+    const activateStory = step => {
+      if (!step || step.dataset.story === activeStory) return;
+      activeStory = step.dataset.story;
+
+      storySteps.forEach(item => {
+        const isActive = item === step;
+        item.classList.toggle("active", isActive);
+        item.setAttribute("aria-current", isActive ? "step" : "false");
+      });
+
+      storyDots.forEach(dot => {
+        const isActive = dot.dataset.storyTarget === activeStory;
+        dot.classList.toggle("active", isActive);
+        if (isActive) {
+          dot.setAttribute("aria-current", "step");
+        } else {
+          dot.removeAttribute("aria-current");
+        }
+      });
+
+      const requestedStory = activeStory;
+      const nextImage = new Image();
+      nextImage.onload = () => {
+        if (requestedStory !== activeStory) return;
+        storyPreview.src = nextImage.src;
+        storyPreview.alt = step.dataset.alt;
+      };
+      nextImage.src = step.dataset.image;
+    };
+
+    storySteps.forEach(step => {
+      const image = new Image();
+      image.src = step.dataset.image;
+    });
+
+    let storyScrollScheduled = false;
+    const updateStoryFromScroll = () => {
+      const visualRect = storyVisual.getBoundingClientRect();
+      const activationLine = visualRect.top + visualRect.height / 2;
+      let selectedStep = storySteps[0];
+      let shortestDistance = Number.POSITIVE_INFINITY;
+
+      storySteps.forEach(step => {
+        const content = step.querySelector(".story-step-inner");
+        const contentRect = content.getBoundingClientRect();
+        const contentCenter = contentRect.top + contentRect.height / 2;
+        const distance = Math.abs(contentCenter - activationLine);
+
+        if (distance < shortestDistance) {
+          shortestDistance = distance;
+          selectedStep = step;
+        }
+      });
+
+      activateStory(selectedStep);
+      storyScrollScheduled = false;
+    };
+
+    const scheduleStoryUpdate = () => {
+      if (storyScrollScheduled) return;
+      storyScrollScheduled = true;
+      requestAnimationFrame(updateStoryFromScroll);
+    };
+
+    storySteps.forEach(step => {
+      step.addEventListener("focus", () => activateStory(step));
+      step.addEventListener("click", () => activateStory(step));
+    });
+
+    window.addEventListener("scroll", scheduleStoryUpdate, { passive: true });
+    window.addEventListener("resize", scheduleStoryUpdate);
+    scheduleStoryUpdate();
+
+    storyDots.forEach(dot => {
+      dot.addEventListener("click", () => {
+        const selector = "[data-story=\"" + dot.dataset.storyTarget + "\"]";
+        const target = document.querySelector(selector);
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+        target?.focus({ preventScroll: true });
+      });
+    });
+
+    const platformTabs = document.querySelectorAll(".platform-tab");
+    const installPanels = document.querySelectorAll(".install-panel");
+    const osDownloadButton = document.getElementById("os-download-button");
+    const osDownloadName = document.getElementById("os-download-name");
+
+    const selectInstallPlatform = selectedPlatform => {
+      platformTabs.forEach(tab => {
+        const isActive = tab.dataset.platform === selectedPlatform;
+        tab.classList.toggle("active", isActive);
+        tab.setAttribute("aria-selected", String(isActive));
+      });
+
+      installPanels.forEach(panel => {
+        const isActive = panel.dataset.panel === selectedPlatform;
+        panel.classList.toggle("active", isActive);
+        panel.hidden = !isActive;
+      });
+    };
+
+    platformTabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        selectInstallPlatform(tab.dataset.platform);
+      });
+    });
+
+    const detectDesktopPlatform = () => {
+      const reportedPlatform = (
+        navigator.userAgentData?.platform || navigator.platform || ""
+      ).toLowerCase();
+      const userAgent = navigator.userAgent.toLowerCase();
+
+      if (reportedPlatform.includes("win")) {
+        return { name: "Windows", panel: "windows" };
+      }
+      if (reportedPlatform.includes("mac")) {
+        return { name: "macOS", panel: "mac" };
+      }
+      if (
+        !userAgent.includes("android") &&
+        (reportedPlatform.includes("linux") || reportedPlatform.includes("x11"))
+      ) {
+        return { name: "Linux", panel: "linux" };
+      }
+      return { name: "your system", panel: null };
+    };
+
+    const detectedPlatform = detectDesktopPlatform();
+    osDownloadName.textContent = detectedPlatform.name;
+    if (detectedPlatform.panel) {
+      selectInstallPlatform(detectedPlatform.panel);
+      osDownloadButton.addEventListener("click", () => {
+        selectInstallPlatform(detectedPlatform.panel);
+      });
+    }
+    // Reveal only after detection to avoid briefly showing the wrong platform.
+    osDownloadButton.hidden = false;
+
+    document.querySelectorAll("[role=tablist]").forEach(tablist => {
+      tablist.addEventListener("keydown", event => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        const tabs = [...tablist.querySelectorAll("[role=tab]")];
+        const currentIndex = tabs.indexOf(document.activeElement);
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        const nextTab = tabs[(currentIndex + direction + tabs.length) % tabs.length];
+        nextTab.focus();
+        nextTab.click();
+      });
+    });
+
+    document.querySelectorAll(".copy-command").forEach(button => {
+      button.addEventListener("click", async () => {
+        const target = document.getElementById(button.dataset.copyTarget);
+        const command = target.textContent.trim();
+
+        try {
+          await navigator.clipboard.writeText(command);
+          button.textContent = "Copied";
+          setTimeout(() => { button.textContent = "Copy commands"; }, 1600);
+        } catch (error) {
+          button.textContent = "Select commands";
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(target);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      });
+    });
+
     // Subtle scroll reveal
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
+          const clearRevealTransform = event => {
+            if (event.propertyName === "transform") {
+              entry.target.style.removeProperty("transform");
+              entry.target.style.removeProperty("transition");
+              entry.target.removeEventListener(
+                "transitionend",
+                clearRevealTransform
+              );
+            }
+          };
+          entry.target.addEventListener(
+            "transitionend",
+            clearRevealTransform
+          );
           entry.target.style.opacity = '1';
           entry.target.style.transform = 'translateY(0)';
           observer.unobserve(entry.target);

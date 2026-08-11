@@ -1,30 +1,27 @@
 <RCC>
   <qresource prefix="resources">
-    <file>icons/app.svg</file>
-    <file>icons/copy.svg</file>
-    <file>icons/delete.svg</file>
-    <file>icons/fav.svg</file>
-    <file>icons/edit.svg</file>
-    <file>icons/copy_light.svg</file>
-    <file>icons/delete_light.svg</file>
-    <file>icons/edit_light.svg</file>
-    
-    <file>icons/clip_dark.svg</file>
-    <file>icons/note_dark.svg</file>
-    <file>icons/settings_dark.svg</file>
-    <file>icons/translate_dark.svg</file>
-    <file>icons/star_dark.svg</file>
+    <file>icons/add_dark.svg</file>
+    <file>icons/add_light.svg</file>
     <file>icons/ai_dark.svg</file>
-    <file>icons/clip_light.svg</file>
-    <file>icons/note_light.svg</file>
-    <file>icons/settings_light.svg</file>
-    <file>icons/translate_light.svg</file>
-    <file>icons/star_light.svg</file>
     <file>icons/ai_light.svg</file>
-
+    <file>icons/app.svg</file>
+    <file>icons/clip_dark.svg</file>
+    <file>icons/clip_light.svg</file>
+    <file>icons/copy_dark.svg</file>
+    <file>icons/copy_light.svg</file>
+    <file>icons/delete_dark.svg</file>
+    <file>icons/edit_dark.svg</file>
+    <file>icons/note_dark.svg</file>
+    <file>icons/note_light.svg</file>
+    <file>icons/settings_dark.svg</file>
+    <file>icons/settings_light.svg</file>
+    <file>icons/star_dark.svg</file>
+    <file>icons/star_light.svg</file>
     <file>icons/sync_dark.svg</file>
     <file>icons/sync_light.svg</file>
-    <file>icons/add_dark.svg</file>
-    <file>icons/paste_dark.svg</file>
+    <file>icons/translate_dark.svg</file>
+    <file>icons/translate_light.svg</file>
+    <file>icons/update_dark.svg</file>
+    <file>icons/update_light.svg</file>
   </qresource>
 </RCC>
