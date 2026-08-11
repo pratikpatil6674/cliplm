@@ -49,7 +49,7 @@ class FavoriteCard(QFrame):
 
         self.copy_button = QPushButton()
         self.copy_button.setObjectName("card_action")
-        self.copy_button.setIcon(COPY_ICON_LIGHT)
+        self.copy_button.setIcon(COPY_ICON_DARK)
         self.copy_button.setFixedSize(btn_size, btn_size)
         btn_layout.addWidget(self.copy_button)
         # self.copy_button_placeholder = QPushButton()
@@ -62,7 +62,7 @@ class FavoriteCard(QFrame):
         self.delete_button = QPushButton()
         self.delete_button.setObjectName("card_action")
         self.delete_button.setProperty("role", "danger")
-        self.delete_button.setIcon(DELETE_ICON_LIGHT)
+        self.delete_button.setIcon(DELETE_ICON_DARK)
         self.delete_button.setFixedSize(btn_size, btn_size)
         btn_layout.addWidget(self.delete_button)
         self.delete_button_placeholder = QPushButton()

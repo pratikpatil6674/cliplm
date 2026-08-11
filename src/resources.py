@@ -1,33 +1,36 @@
 from PySide6.QtGui import QIcon
+
 import resources_rc
 
-APP_ICON = QIcon(":/resources/icons/app.svg")
-COPY_ICON = QIcon(":/resources/icons/copy.svg")
-DELETE_ICON = QIcon(":/resources/icons/delete.svg")
-EDIT_ICON = QIcon(":/resources/icons/edit.svg")
-FAV_ICON = QIcon(":/resources/icons/fav.svg")
 
-COPY_ICON_LIGHT = QIcon(":/resources/icons/copy_light.svg")
-COPY_ICON_DARK = QIcon(":/resources/icons/copy.svg")
-PASTE_ICON_DARK = QIcon(":/resources/icons/paste_dark.svg")
-DELETE_ICON_LIGHT = QIcon(":/resources/icons/delete_light.svg")
-EDIT_ICON_LIGHT = QIcon(":/resources/icons/edit_light.svg")
+def _icon(file_name: str) -> QIcon:
+    return QIcon(f":/resources/icons/{file_name}")
 
-CLIP_ICON = QIcon(":/resources/icons/clip_dark.svg")
-STAR_ICON = QIcon(":/resources/icons/star_dark.svg")
-NOTE_ICON = QIcon(":/resources/icons/note_dark.svg")
-TRANSLATE_ICON = QIcon(":/resources/icons/translate_dark.svg")
-AI_ICON = QIcon(":/resources/icons/ai_dark.svg")
-SETTINGS_ICON = QIcon(":/resources/icons/settings_dark.svg")
 
-# tab light icons
-CLIP_ICON_LIGHT = QIcon(":/resources/icons/clip_light.svg")
-STAR_ICON_LIGHT = QIcon(":/resources/icons/star_light.svg")
-NOTE_ICON_LIGHT = QIcon(":/resources/icons/note_light.svg")
-TRANSLATE_ICON_LIGHT = QIcon(":/resources/icons/translate_light.svg")
-AI_ICON_LIGHT = QIcon(":/resources/icons/ai_light.svg")
-SETTINGS_ICON_LIGHT = QIcon(":/resources/icons/settings_light.svg")
+APP_ICON = _icon("app.svg")
 
-ADD_ICON_DARK = QIcon(":/resources/icons/add_dark.svg")
-SYNC_ICON_DARK = QIcon(":/resources/icons/sync_dark.svg")
-SYNC_ICON_LIGHT = QIcon(":/resources/icons/sync_light.svg")
+ADD_ICON_DARK = _icon("add_dark.svg")
+ADD_ICON_LIGHT = _icon("add_light.svg")
+AI_ICON = _icon("ai_dark.svg")
+AI_ICON_LIGHT = _icon("ai_light.svg")
+CLIP_ICON = _icon("clip_dark.svg")
+CLIP_ICON_LIGHT = _icon("clip_light.svg")
+COPY_ICON_DARK = _icon("copy_dark.svg")
+COPY_ICON_LIGHT = _icon("copy_light.svg")
+DELETE_ICON_DARK = _icon("delete_dark.svg")
+EDIT_ICON_DARK = _icon("edit_dark.svg")
+NOTE_ICON = _icon("note_dark.svg")
+NOTE_ICON_LIGHT = _icon("note_light.svg")
+SETTINGS_ICON = _icon("settings_dark.svg")
+SETTINGS_ICON_LIGHT = _icon("settings_light.svg")
+STAR_ICON = _icon("star_dark.svg")
+STAR_ICON_LIGHT = _icon("star_light.svg")
+SYNC_ICON_DARK = _icon("sync_dark.svg")
+SYNC_ICON_LIGHT = _icon("sync_light.svg")
+TRANSLATE_ICON = _icon("translate_dark.svg")
+TRANSLATE_ICON_LIGHT = _icon("translate_light.svg")
+UPDATE_ICON_DARK = _icon("update_dark.svg")
+UPDATE_ICON_LIGHT = _icon("update_light.svg")
+
+PASTE_ICON_DARK = _icon("clip_dark.svg")
+PASTE_ICON_LIGHT = _icon("clip_light.svg")

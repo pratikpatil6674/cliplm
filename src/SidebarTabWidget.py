@@ -22,8 +22,8 @@ from resources import (
     SETTINGS_ICON_LIGHT,
     STAR_ICON,
     STAR_ICON_LIGHT,
-    SYNC_ICON_DARK,
-    SYNC_ICON_LIGHT,
+    UPDATE_ICON_DARK,
+    UPDATE_ICON_LIGHT,
     TRANSLATE_ICON,
     TRANSLATE_ICON_LIGHT,
 )
@@ -72,11 +72,12 @@ class SidebarTabWidget(QWidget):
         sidebar_layout.addStretch(1)
 
         self.bottom_tabs_layout = QVBoxLayout()
+        self.bottom_tabs_layout.setContentsMargins(0, 0, 0, 4)
         self.bottom_tabs_layout.setSpacing(4)
 
         self.update_button = SidebarTabButton(
             "Updates",
-            SYNC_ICON_DARK,
+            UPDATE_ICON_DARK,
             self.sidebar,
         )
         self.update_button.setCheckable(False)
@@ -238,8 +239,12 @@ class SidebarTabWidget(QWidget):
     def set_dark_mode(self, enabled: bool) -> None:
         self._dark_mode = bool(enabled)
         self.update_button.setIcon(
-            SYNC_ICON_LIGHT if self._dark_mode else SYNC_ICON_DARK
+            UPDATE_ICON_LIGHT if self._dark_mode else UPDATE_ICON_DARK
         )
+        for record in self._records:
+            set_dark_mode = getattr(record.widget, "set_dark_mode", None)
+            if callable(set_dark_mode):
+                set_dark_mode(self._dark_mode)
         if self._current_index >= 0:
             self.setCurrentIndex(self._current_index)
 
@@ -284,7 +289,7 @@ class SidebarTabWidget(QWidget):
             "favorites": "Faves",
             "notes": "Notes",
             "translate": "Trans.",
-            "agent": "Agent",
+            "ai": "AI",
             "settings": "Settings",
         }
         return labels.get(text.strip().casefold(), text)
@@ -295,7 +300,7 @@ class SidebarTabWidget(QWidget):
             "favorites": (STAR_ICON, STAR_ICON_LIGHT),
             "notes": (NOTE_ICON, NOTE_ICON_LIGHT),
             "translate": (TRANSLATE_ICON, TRANSLATE_ICON_LIGHT),
-            "agent": (AI_ICON, AI_ICON_LIGHT),
+            "ai": (AI_ICON, AI_ICON_LIGHT),
             "settings": (SETTINGS_ICON, SETTINGS_ICON_LIGHT),
         }
         return icons.get(text.strip().casefold(), (QIcon(), QIcon()))

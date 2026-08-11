@@ -544,13 +544,22 @@ QPushButton#translate_button:hover {
     background: #285eb9;
     border-color: #285eb9;
 }
-QPlainTextEdit#translate_src_text,
-QLabel#translated_text {
+QFrame#translation_source_panel,
+QFrame#translation_destination_panel {
     color: #263448;
     background: #ffffff;
     border: 1px solid #d8e0e9;
     border-radius: 10px;
-    padding: 12px;
+    padding: 0;
+    font-size: 13px;
+}
+QPlainTextEdit#translate_src_text,
+QLabel#translated_text {
+    color: #263448;
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+    padding: 11px;
     font-size: 13px;
 }
 

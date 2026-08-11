@@ -69,7 +69,7 @@ class ClipboardCard(QFrame):
 
         self.copy_button = QPushButton()
         self.copy_button.setObjectName("card_action")
-        self.copy_button.setIcon(COPY_ICON_LIGHT)
+        self.copy_button.setIcon(COPY_ICON_DARK)
         self.copy_button.setFixedSize(button_size, button_size)
         buttons_layout.addWidget(self.copy_button)
         buttons_layout.addStretch()

@@ -61,7 +61,7 @@ class SettingsTab(QWidget):
         ai_layout.setSpacing(8)
         ai_layout.setContentsMargins(16, 14, 16, 14)
 
-        ai_title = QLabel("Agent Settings")
+        ai_title = QLabel("AI Settings")
         ai_title.setObjectName("card_title")
         ai_layout.addWidget(ai_title)
         form_layout = QGridLayout()
@@ -133,7 +133,7 @@ class SettingsTab(QWidget):
 
         translate_hint = QLabel(
             "Source and target language preferences are saved from the Translate tab. "
-            "If you select LLM API, Translate uses the endpoint, model, and API key from Agent Settings."
+            "If you select LLM API, Translate uses the endpoint, model, and API key from AI Settings."
         )
         translate_hint.setObjectName("hint_label")
         translate_hint.setWordWrap(True)

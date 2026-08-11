@@ -12,7 +12,7 @@ from ClipData import ClipData
 from ManualCard import ManualCard
 from ManualDialog import ManualEntryDialog
 from PageHeader import PageHeader
-from resources import ADD_ICON_DARK
+from resources import *
 
 
 class ManualTab(QWidget):
@@ -43,7 +43,7 @@ class ManualTab(QWidget):
         self.add_button = self.header.add_primary_action(
             "New note",
             lambda checked=False: self.handle_add_request(),
-            icon=ADD_ICON_DARK,
+            icon=ADD_ICON_LIGHT,
         )
         self.delete_action = self.header.add_menu_action(
             "Delete",
@@ -80,6 +80,11 @@ class ManualTab(QWidget):
 
     def _connect_signals(self):
         self.header.searchChanged.connect(self.searchRequested.emit)
+
+    def set_dark_mode(self, enabled: bool) -> None:
+        self.add_button.setIcon(
+            ADD_ICON_DARK if enabled else ADD_ICON_LIGHT
+        )
 
     def current_search_query(self) -> str:
         return self.header.current_search_text()

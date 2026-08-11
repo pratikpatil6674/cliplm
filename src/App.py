@@ -202,7 +202,7 @@ class App(QWidget):
         self.ai_presenter = AIPresenter(self.ai_service, self.ai_tab)
         self.ai_tab.promptExecutionRequested.connect(self.ai_presenter.execute_selected_prompt)
         self.clipboard_presenter.ai_presenter = self.ai_presenter
-        self.tabs.addTab(self.ai_tab, "Agent")
+        self.tabs.addTab(self.ai_tab, "AI")
 
         self.settings_tab = SettingsTab()
         self.settings_tab.set_settings(self.settings)

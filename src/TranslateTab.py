@@ -21,7 +21,7 @@ class TranslateTab(QWidget):
     def __init__(self):
         super().__init__()
         self._language_items = []
-        self._syncing_scrollbars = True
+        self._syncing_scrollbars = False
         self.setObjectName("translate_tab")
         self._setup_ui()
         self._connect_scrollbars()
@@ -94,12 +94,31 @@ class TranslateTab(QWidget):
         card_layout.setContentsMargins(12, 12, 12, 12)
         card_layout.setSpacing(8)
 
+        self.source_panel = QFrame()
+        self.source_panel.setObjectName("translation_source_panel")
+        source_panel_layout = QVBoxLayout(self.source_panel)
+        source_panel_layout.setContentsMargins(1, 1, 1, 1)
+        source_panel_layout.setSpacing(0)
+
         self.translate_src_text = QPlainTextEdit("Copy text to populate this field.")
         self.translate_src_text.setObjectName("translate_src_text")
-        self.source_scroll = QScrollArea()
-        self.source_scroll.setWidgetResizable(True)
-        self.source_scroll.setWidget(self.translate_src_text)
-        card_layout.addWidget(self.source_scroll)
+        self.translate_src_text.viewport().setAutoFillBackground(False)
+        self.translate_src_text.viewport().setAttribute(
+            Qt.WA_TranslucentBackground,
+            True,
+        )
+        source_panel_layout.addWidget(self.translate_src_text)
+        card_layout.addWidget(self.source_panel)
+
+        # QPlainTextEdit already provides scrolling; avoid nesting it in a
+        # QScrollArea and use its scrollbar for synchronized translation views.
+        self.source_scroll = self.translate_src_text
+
+        self.destination_panel = QFrame()
+        self.destination_panel.setObjectName("translation_destination_panel")
+        destination_panel_layout = QVBoxLayout(self.destination_panel)
+        destination_panel_layout.setContentsMargins(1, 1, 1, 1)
+        destination_panel_layout.setSpacing(0)
 
         self.translated_text = QLabel("Translation output will appear here.")
         self.translated_text.setObjectName("translated_text")
@@ -108,9 +127,11 @@ class TranslateTab(QWidget):
         self.translated_text.setWordWrap(True)
         self.translated_text.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.destination_scroll = QScrollArea()
+        self.destination_scroll.setObjectName("translation_destination_scroll")
         self.destination_scroll.setWidgetResizable(True)
         self.destination_scroll.setWidget(self.translated_text)
-        card_layout.addWidget(self.destination_scroll)
+        destination_panel_layout.addWidget(self.destination_scroll)
+        card_layout.addWidget(self.destination_panel)
 
         layout.addWidget(card)
 
@@ -169,30 +190,19 @@ class TranslateTab(QWidget):
             QPushButton#translate_button:hover {
                 background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #4b88fb, stop:1 #3871e0);
             }
-            QPlainTextEdit#translate_src_text {
-                color: #263238;
-                margin: 0;
+            QFrame#translation_source_panel,
+            QFrame#translation_destination_panel {
                 border: 1px solid rgba(30,36,44,0.06);
-                padding: 8px 10px;
                 background: #fbfdff;
-                border-top-left-radius: 0px;
-                border-top-right-radius: 0px;
-                border-bottom-left-radius: 0px;
-                border-bottom-right-radius: 0px;
+                border-radius: 10px;
             }
+            QPlainTextEdit#translate_src_text,
             QLabel#translated_text {
                 color: #263238;
                 margin: 0;
-                border: 1px solid rgba(30,36,44,0.06);
+                border: none;
                 padding: 8px 10px;
-                background: #fbfdff;
-                border-top-left-radius: 0px;
-                border-top-right-radius: 0px;
-                border-bottom-left-radius: 0px;
-                border-bottom-right-radius: 0px;
-            }
-            QLabel#translated_text {
-                background: #ffffff;
+                background: transparent;
             }
         """
         )
@@ -240,6 +250,8 @@ class TranslateTab(QWidget):
         )
 
     def _sync_scrollbars(self, source_bar, target_bar, value):
+        # Updating the other scrollbar emits another valueChanged signal.
+        # Ignore that call so the two bars do not update each other forever.
         if self._syncing_scrollbars:
             return
 
@@ -248,12 +260,15 @@ class TranslateTab(QWidget):
         if target_max <= 0:
             return
 
+        # The boxes can have different scroll ranges, so match their relative
+        # positions instead of copying the raw scrollbar value.
         if source_max <= 0:
             target_value = 0
         else:
             ratio = value / source_max
             target_value = round(ratio * target_max)
 
+        # Hold the guard only while changing the other scrollbar.
         self._syncing_scrollbars = True
         try:
             target_bar.setValue(target_value)
@@ -268,6 +283,7 @@ class TranslateTab(QWidget):
 
         self._update_translate_button_size()
         QTimer.singleShot(0, self._update_translate_button_size)
+
     def _populate_language_combo(self, combo, languages, default_code):
         combo.blockSignals(True)
         combo.clear()

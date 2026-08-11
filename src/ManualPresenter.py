@@ -20,8 +20,8 @@ class ManualPresenter:
     def handle_add_request(self):
         # breakpoint()
         title, text = self.view.get_manual_entry()
-        print(f"Adding manual entry: title='{title}', text='{text}'")
         if title and text:
+            print(f"Adding manual entry: title='{title}', text='{text}'")
             note_id = self.model.add_note(title, text)
             if self.view.current_search_query():
                 self.handle_search_request(self.view.current_search_query())

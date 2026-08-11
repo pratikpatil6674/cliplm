@@ -62,7 +62,7 @@ class ManualCard(QFrame):
 
         self.copy_btn = QToolButton()
         self.copy_btn.setObjectName("card_action")
-        self.copy_btn.setIcon(COPY_ICON_LIGHT)
+        self.copy_btn.setIcon(COPY_ICON_DARK)
         self.copy_btn.setIconSize(icon_size)
         self.copy_btn.setFixedSize(button_size)
         self.copy_btn.setToolTip("Copy")
@@ -73,7 +73,7 @@ class ManualCard(QFrame):
         self.delete_btn = QToolButton()
         self.delete_btn.setObjectName("card_action")
         self.delete_btn.setProperty("role", "danger")
-        self.delete_btn.setIcon(DELETE_ICON_LIGHT)
+        self.delete_btn.setIcon(DELETE_ICON_DARK)
         self.delete_btn.setIconSize(icon_size)
         self.delete_btn.setFixedSize(button_size)
         self.delete_btn.setToolTip("Delete")
@@ -103,7 +103,7 @@ class ManualCard(QFrame):
         # edit button on the far right
         self.edit_btn = QToolButton()
         self.edit_btn.setObjectName("card_action")
-        self.edit_btn.setIcon(EDIT_ICON_LIGHT)
+        self.edit_btn.setIcon(EDIT_ICON_DARK)
         self.edit_btn.setIconSize(icon_size)
         self.edit_btn.setFixedSize(button_size)
         self.edit_btn.setToolTip("Edit")

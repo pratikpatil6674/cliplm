@@ -407,8 +407,8 @@ QWidget#translate_tab QFrame#card {{
 }}
 QListWidget#prompts_list,
 QLabel#ai_output_text,
-QPlainTextEdit#translate_src_text,
-QLabel#translated_text,
+QFrame#translation_source_panel,
+QFrame#translation_destination_panel,
 QDialog#prompt_editor_dialog QFrame#sidebar,
 QDialog#prompt_editor_dialog QFrame#card,
 QDialog#manual_entry_dialog QLineEdit,
@@ -418,6 +418,12 @@ QDialog#prompt_editor_dialog QPlainTextEdit {{
     color: {p["text"]};
     background: {p["surface"]};
     border-color: {p["border"]};
+}}
+QPlainTextEdit#translate_src_text,
+QLabel#translated_text {{
+    color: {p["text"]};
+    background: transparent;
+    border: none;
 }}
 
 QDialog#manual_entry_dialog QLineEdit:hover,

@@ -23,7 +23,7 @@ class PromptsStore:
 
         The application can start without a prompts file, so absence is not an
         error. Invalid TOML and other read failures clear the in-memory config
-        and populate ``last_error`` for the Agent tab to display.
+        and populate ``last_error`` for the AI tab to display.
         """
         try:
             with open(self.store_path, "rb") as f:
