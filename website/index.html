@@ -575,6 +575,10 @@
       opacity: 0.32;
     }
 
+    .story-mobile-screen {
+      display: none;
+    }
+
     .story-progress {
       display: flex;
       align-items: center;
@@ -892,73 +896,55 @@
       }
     }
 
-    @media (max-width: 600px) {
-      .hero-actions {
-        flex-direction: column;
-        align-items: stretch;
-      }
+    @media (max-width: 720px) {
+      nav { top: 10px; width: calc(100% - 20px); height: 56px; padding: 0 10px 0 12px; }
+      .nav-logo { gap: 6px; font-size: 17px; }
+      .nav-logo-icon { width: 32px; height: 32px; }
+      .nav-logo-icon svg, .nav-logo-icon img { width: 26px; height: 26px; }
+      .nav-download { padding: 7px 15px; font-size: 12px; }
+      .hero { padding: 112px 18px 58px; }
+      .hero h1 { margin-bottom: 18px; font-size: clamp(31px, 9vw, 40px); line-height: 1.12; }
+      .hero-desc { margin-bottom: 26px; font-size: 15px; line-height: 1.65; }
+      .hero-actions { width: 100%; flex-direction: column; align-items: stretch; }
+      .os-download { min-width: 0; padding-right: 22px; padding-left: 22px; font-size: 17px; }
+      .hero-platforms { font-size: 12px; }
+      .hero-note { max-width: 290px; font-size: 11px; line-height: 1.6; }
+      .feature-story { padding: 58px 16px 42px; }
+      .section-heading { gap: 0; margin-bottom: 18px; }
+      .section-title { font-size: 32px; line-height: 1.1; }
+      .story-layout { display: block; }
+      .story-visual-column { display: none; }
+      .story-step, .story-step.active { min-height: 0; margin-bottom: 24px; opacity: 1; }
+      .story-step-inner { width: 100%; max-width: none; margin: 0; padding: 26px 0 0; border-top: 1px solid rgba(26, 115, 232, 0.14); border-left: 0; }
+      .story-step:first-child .story-step-inner { border-top: 0; }
+      .story-index { margin-bottom: 12px; }
+      .story-step h3 { margin-bottom: 12px; font-size: 28px; }
+      .story-step p { font-size: 14px; line-height: 1.65; }
+      .story-mobile-screen { display: block; width: 100%; margin: 20px 0; overflow: hidden; border-top-left-radius: 4px; border-top-right-radius: 4px; background: #e9eef7; box-shadow: 0 12px 32px rgba(22, 48, 80, 0.16); }
+      .story-mobile-screen img { display: block; width: 100%; height: auto; }
+      .story-feature-list { margin-top: 0; }
+      .story-feature-list li { grid-template-columns: 58px minmax(0, 1fr); padding: 10px; }
+      .story-shortcut-list { display: grid; grid-template-columns: 1fr; }
+      .install-section { padding: 58px 16px; }
+      .platform-tabs { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+      .platform-tab { justify-content: center; padding: 9px 5px; font-size: 11px; }
+      .install-panel { padding: 18px; }
+      .installer-row { align-items: flex-start; flex-direction: column; }
+      .installer-summary { gap: 12px; }
+      .platform-mark { width: 40px; height: 40px; border-radius: 11px; font-size: 12px; }
+      .install-copy h3 { font-size: 19px; }
+      .download-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+      .download-actions a { justify-content: center; text-align: center; }
+      .terminal { margin-top: 18px; }
+      .terminal pre { padding: 14px; font-size: 10.5px; }
+      footer { padding: 28px 16px; gap: 16px; }
+      .footer-links { gap: 20px; }
+    }
 
-      .os-download {
-        min-width: 0;
-        padding-right: 22px;
-        padding-left: 22px;
-        font-size: 17px;
-      }
-
-      .platform-tabs {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        width: 100%;
-      }
-
-      .platform-tab {
-        justify-content: center;
-        padding: 10px 8px;
-      }
-
-      .install-panel {
-        padding: 24px;
-      }
-
-      .feature-story {
-        padding-right: 16px;
-        padding-left: 16px;
-      }
-
-      .story-visual {
-        top: 72px;
-        padding: 10px;
-        border-radius: 16px;
-      }
-
-      .story-progress {
-        padding-top: 12px;
-      }
-
-      .story-dot {
-        width: 15px;
-      }
-
-      .story-dot.active {
-        width: 30px;
-      }
-
-      .story-step {
-        min-height: clamp(340px, 48vh, 420px);
-      }
-
-      .story-step-inner {
-        padding: 28px 8px 28px 24px;
-      }
-
-      .story-step h3 {
-        font-size: 27px;
-      }
-
-      .installer-row {
-        align-items: flex-start;
-        flex-direction: column;
-      }
+    @media (max-width: 380px) {
+      .nav-download { padding-right: 12px; padding-left: 12px; }
+      .story-step h3 { font-size: 25px; }
+      .platform-mark { display: none; }
     }
 
     /* ANIMATIONS */
@@ -1090,6 +1076,7 @@
             <span class="story-index">01 · Capture</span>
             <h3>Search beyond the preview.</h3>
             <p>Clipboard keeps copied text and images in local history. Search queries the stored content, so results are not limited to the shortened text shown on each card.</p>
+            <div class="story-mobile-screen"><img src="01-clipboard.png" alt="ClipLM searchable clipboard history"></div>
             <ul class="story-feature-list">
               <li><span class="story-feature-label">History</span><span class="story-feature-text">Newest clips appear first with text or image previews.</span></li>
               <li><span class="story-feature-label">Actions</span><span class="story-feature-text">Copy, paste, or save an item to Favorites directly from its card.</span></li>
@@ -1111,6 +1098,7 @@
             <span class="story-index">02 · Keep</span>
             <h3>Keep the clips worth reusing.</h3>
             <p>Favorites separates reusable content from temporary clipboard history. Saved items remain searchable and retain direct copy and paste controls.</p>
+            <div class="story-mobile-screen"><img src="02-favorites.png" alt="ClipLM favorites library"></div>
             <ul class="story-feature-list">
               <li><span class="story-feature-label">Save</span><span class="story-feature-text">Promote any clipboard card into the persistent Favorites list.</span></li>
               <li><span class="story-feature-label">Reuse</span><span class="story-feature-text">Copy an item or place it in the clipboard and trigger paste in one action.</span></li>
@@ -1132,6 +1120,7 @@
             <span class="story-index">03 · Shape</span>
             <h3>Give useful text a permanent place.</h3>
             <p>Notes stores a title and body as a durable local entry. Search works on stored note content rather than only the preview visible in the list.</p>
+            <div class="story-mobile-screen"><img src="03-notes.png" alt="ClipLM notes workspace"></div>
             <ul class="story-feature-list">
               <li><span class="story-feature-label">Create</span><span class="story-feature-text">Add a titled note from the page header and validate both fields before saving.</span></li>
               <li><span class="story-feature-label">Edit</span><span class="story-feature-text">Open an existing note for editing, or copy and paste its content from the card.</span></li>
@@ -1153,6 +1142,7 @@
             <span class="story-index">04 · Translate</span>
             <h3>Translate without switching context.</h3>
             <p>Translate provides separate source and destination language selectors and shows the active provider directly on the Translate button.</p>
+            <div class="story-mobile-screen"><img src="04-translate.png" alt="ClipLM translation workspace"></div>
             <ul class="story-feature-list">
               <li><span class="story-feature-label">Languages</span><span class="story-feature-text">Use automatic source detection or reverse explicit source and destination selections.</span></li>
               <li><span class="story-feature-label">Provider</span><span class="story-feature-text">Choose Google Translate or the LLM endpoint configured in Settings.</span></li>
@@ -1173,6 +1163,7 @@
             <span class="story-index">05 · Transform</span>
             <h3>Run your prompts on copied content.</h3>
             <p>AI runs a selected reusable prompt against copied text or image input through the OpenAI-compatible endpoint configured in Settings.</p>
+            <div class="story-mobile-screen"><img src="05-ai.png" alt="ClipLM reusable AI prompt workflow"></div>
             <ul class="story-feature-list">
               <li><span class="story-feature-label">Run</span><span class="story-feature-text">Click a prompt row to select it and execute it against the current copied input.</span></li>
               <li><span class="story-feature-label">Manage</span><span class="story-feature-text">Add or reload prompts; use the row menu to edit or delete them. Duplicate names are rejected.</span></li>
@@ -1192,6 +1183,7 @@
             <span class="story-index">06 · Configure</span>
             <h3>Make the workflow fit your setup.</h3>
             <p>Settings keeps appearance, AI, translation, and storage configuration in separate compact sections and saves them in the user configuration directory.</p>
+            <div class="story-mobile-screen"><img src="06-settings.png" alt="ClipLM appearance and provider settings"></div>
             <ul class="story-feature-list">
               <li><span class="story-feature-label">Appearance</span><span class="story-feature-text">Select an accent palette and switch between light and dark modes.</span></li>
               <li><span class="story-feature-label">Services</span><span class="story-feature-text">Set the OpenAI-compatible endpoint, model, API key, translation provider, and tab visibility.</span></li>
