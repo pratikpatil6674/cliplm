@@ -3,6 +3,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -14,6 +15,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from LLMProfileDialog import LLMProfileManagerDialog
+from LLMProfiles import normalize_ai_settings
 from ThemeManager import THEME_OPTIONS
 
 
@@ -83,41 +86,62 @@ class SettingsTab(QWidget):
         ai_title = QLabel("AI Settings")
         ai_title.setObjectName("settings_card_title")
         ai_layout.addWidget(ai_title)
-        form_layout = QGridLayout()
-        form_layout.setHorizontalSpacing(14)
-        form_layout.setVerticalSpacing(10)
-        form_layout.setColumnMinimumWidth(0, 190)
-        form_layout.setColumnStretch(1, 1)
 
+        profile_row = QHBoxLayout()
+        profile_row.setSpacing(10)
+        profile_label = QLabel("Default LLM profile")
+        profile_label.setObjectName("field_label")
+        profile_row.addWidget(profile_label)
 
-        self.endpoint_label = QLabel("OpenAI Compatible Endpoint")
-        self.endpoint_label.setObjectName("field_label")
+        self.profile_combo = QComboBox()
+        self.profile_combo.setObjectName("text_input")
+        self.profile_combo.setMinimumWidth(180)
+        self.profile_combo.currentIndexChanged.connect(
+            self._update_profile_summary
+        )
+        profile_row.addWidget(self.profile_combo, 1)
 
-        self.endpoint_input = QLineEdit()
-        self.endpoint_input.setObjectName("text_input")
-        self.endpoint_input.setPlaceholderText("https://api.example.com/v1/")
-        form_layout.addWidget(self.endpoint_input, 0, 1)
+        self.manage_profiles_button = QPushButton("Manage")
+        self.manage_profiles_button.setObjectName("manage_profiles_button")
+        self.manage_profiles_button.setCursor(Qt.PointingHandCursor)
+        self.manage_profiles_button.clicked.connect(self._manage_profiles)
+        profile_row.addWidget(self.manage_profiles_button)
+        ai_layout.addLayout(profile_row)
 
-        self.model_label = QLabel("Model")
-        self.model_label.setObjectName("field_label")
+        self.profile_summary = QFrame()
+        self.profile_summary.setObjectName("llm_profile_summary")
+        summary_layout = QGridLayout(self.profile_summary)
+        summary_layout.setContentsMargins(10, 8, 10, 8)
+        summary_layout.setHorizontalSpacing(10)
+        summary_layout.setVerticalSpacing(3)
+        summary_layout.setColumnMinimumWidth(0, 58)
+        summary_layout.setColumnStretch(1, 1)
 
-        self.model_input = QLineEdit()
-        self.model_input.setObjectName("text_input")
-        self.model_input.setPlaceholderText("gpt-4.1-mini")
-        form_layout.addWidget(self.model_input, 1, 1)
+        endpoint_caption = QLabel("Endpoint")
+        endpoint_caption.setObjectName("profile_summary_caption")
+        model_caption = QLabel("Model")
+        model_caption.setObjectName("profile_summary_caption")
+        key_caption = QLabel("API key")
+        key_caption.setObjectName("profile_summary_caption")
+        self.profile_endpoint_value = QLabel()
+        self.profile_endpoint_value.setObjectName("profile_summary_value")
+        self.profile_endpoint_value.setTextInteractionFlags(
+            Qt.TextSelectableByMouse
+        )
+        self.profile_model_value = QLabel()
+        self.profile_model_value.setObjectName("profile_summary_value")
+        self.profile_model_value.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.profile_key_value = QLabel()
+        self.profile_key_value.setObjectName("profile_summary_value")
+        summary_layout.addWidget(endpoint_caption, 0, 0)
+        summary_layout.addWidget(self.profile_endpoint_value, 0, 1)
+        summary_layout.addWidget(model_caption, 1, 0)
+        summary_layout.addWidget(self.profile_model_value, 1, 1)
+        summary_layout.addWidget(key_caption, 2, 0)
+        summary_layout.addWidget(self.profile_key_value, 2, 1)
+        ai_layout.addWidget(self.profile_summary)
 
-        self.api_key_label = QLabel("API Key")
-        self.api_key_label.setObjectName("field_label")
-
-        self.api_key_input = QLineEdit()
-        self.api_key_input.setObjectName("text_input")
-        self.api_key_input.setEchoMode(QLineEdit.Password)
-        self.api_key_input.setPlaceholderText("Enter API key")
-        form_layout.addWidget(self.endpoint_label, 0, 0)
-        form_layout.addWidget(self.model_label, 1, 0)
-        form_layout.addWidget(self.api_key_label, 2, 0)
-        form_layout.addWidget(self.api_key_input, 2, 1)
-        ai_layout.addLayout(form_layout)
+        self._profiles = []
 
         layout.addWidget(ai_card)
 
@@ -152,7 +176,7 @@ class SettingsTab(QWidget):
 
         translate_hint = QLabel(
             "Source and target language preferences are saved from the Translate tab. "
-            "If you select LLM API, Translate uses the endpoint, model, and API key from AI Settings."
+            "If you select LLM API, Translate uses the default LLM profile from AI Settings."
         )
         translate_hint.setObjectName("hint_label")
         translate_hint.setWordWrap(True)
@@ -227,6 +251,55 @@ class SettingsTab(QWidget):
         if path:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
+    def _manage_profiles(self) -> None:
+        active_profile_id = self.profile_combo.currentData() or ""
+        dialog = LLMProfileManagerDialog(self._profiles, self)
+        if dialog.exec() != QDialog.Accepted:
+            return
+
+        self._profiles = dialog.profiles()
+        profile_ids = {profile["id"] for profile in self._profiles}
+        if active_profile_id not in profile_ids:
+            active_profile_id = self._profiles[0]["id"] if self._profiles else ""
+        self._refresh_profile_combo(active_profile_id)
+
+    def _refresh_profile_combo(self, active_profile_id: str = "") -> None:
+        self.profile_combo.blockSignals(True)
+        self.profile_combo.clear()
+        for profile in self._profiles:
+            self.profile_combo.addItem(profile["name"], profile["id"])
+
+        active_index = self.profile_combo.findData(active_profile_id)
+        if active_index < 0 and self.profile_combo.count():
+            active_index = 0
+        self.profile_combo.setCurrentIndex(active_index)
+        self.profile_combo.setEnabled(bool(self._profiles))
+        self.profile_combo.blockSignals(False)
+        self._update_profile_summary()
+
+    def _update_profile_summary(self, *_args) -> None:
+        profile_id = self.profile_combo.currentData()
+        profile = next(
+            (
+                profile
+                for profile in self._profiles
+                if profile["id"] == profile_id
+            ),
+            None,
+        )
+        if profile is None:
+            self.profile_endpoint_value.setText("No profiles configured")
+            self.profile_model_value.setText("Add a profile to enable AI features")
+            self.profile_key_value.setText("Not configured")
+            return
+
+        self.profile_endpoint_value.setText(profile["endpoint"])
+        self.profile_endpoint_value.setToolTip(profile["endpoint"])
+        self.profile_model_value.setText(profile["model"])
+        self.profile_key_value.setText(
+            "Saved" if profile["api_key"] else "Not required"
+        )
+
     def _setup_styles(self):
         self.setStyleSheet(
             """
@@ -289,7 +362,7 @@ class SettingsTab(QWidget):
 
     def set_settings(self, settings):
         appearance_settings = settings.get("appearance", {})
-        ai_settings = settings.get("ai", {})
+        ai_settings = normalize_ai_settings(settings.get("ai", {}))
         translate_settings = settings.get("translate", {})
         theme_index = self.theme_combo.findData(
             appearance_settings.get("theme", "blue")
@@ -298,9 +371,8 @@ class SettingsTab(QWidget):
         self.dark_mode_checkbox.setChecked(
             appearance_settings.get("dark_mode", False)
         )
-        self.endpoint_input.setText(ai_settings.get("endpoint", ""))
-        self.model_input.setText(ai_settings.get("model", ""))
-        self.api_key_input.setText(ai_settings.get("api_key", ""))
+        self._profiles = ai_settings["profiles"]
+        self._refresh_profile_combo(ai_settings["active_profile_id"])
         self.translate_enabled_checkbox.setChecked(
             translate_settings.get("enabled", True)
         )
@@ -318,9 +390,8 @@ class SettingsTab(QWidget):
                 "dark_mode": self.dark_mode_checkbox.isChecked(),
             },
             "ai": {
-                "endpoint": self.endpoint_input.text().strip(),
-                "model": self.model_input.text().strip(),
-                "api_key": self.api_key_input.text().strip(),
+                "active_profile_id": self.profile_combo.currentData() or "",
+                "profiles": self._profiles,
             },
             "translate": {
                 "enabled": self.translate_enabled_checkbox.isChecked(),

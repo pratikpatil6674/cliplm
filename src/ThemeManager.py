@@ -364,6 +364,7 @@ QFrame#clipboard_card,
 QFrame#favorite_card,
 QFrame#manual_card,
 QWidget#settings_tab QFrame#card,
+QFrame#llm_profile_details,
 QFrame#update_status_card {{
     color: {p["text"]};
     background: {p["surface"]};
@@ -385,9 +386,14 @@ QLabel#manual_card_bottom {{
 QLabel#manual_card_top,
 QLabel#section_label,
 QLabel#field_label,
+QLabel#dialog_description,
+QLabel#profile_summary_caption,
 QLabel#update_meta,
 QLabel#update_version_label {{
     color: {p["muted"]};
+}}
+QLabel#section_label[hasContent="true"] {{
+    color: {p["accent"]};
 }}
 QToolButton#card_action:hover,
 QPushButton#card_action:hover {{
@@ -420,6 +426,14 @@ QDialog#prompt_editor_dialog QPlainTextEdit {{
     background: {p["surface"]};
     border-color: {p["border"]};
 }}
+QListWidget#prompts_list {{
+    border: none;
+    border-radius: 0;
+}}
+QFrame#prompts_header {{
+    background: {p["surface"]};
+    border: none;
+}}
 QPlainTextEdit#translate_src_text,
 QLabel#translated_text {{
     color: {p["text"]};
@@ -450,12 +464,62 @@ QListWidget#prompts_list::item:selected {{
 QLabel#ai_input_prompt,
 QWidget#input_data_placeholder {{
     color: {p["text"]};
-    background: {p["surface_alt"]};
-    border-color: {p["border"]};
+    background: {p["soft"]};
+    border: 1px solid {p["border_strong"]};
+    border-radius: 8px;
+    padding: 7px 9px;
 }}
+QLabel#ai_output_text {{
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+}}
+QScrollArea#ai_output_scroll {{
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid {p["border"]};
+}}
+QFrame#prompt_context_card,
+QFrame#input_context_card {{
+    background: transparent;
+    border: none;
+}}
+QLabel#prompt_summary,
+QLabel#input_summary,
+QLabel#ai_request_status,
+QLabel#ai_request_state {{
+    color: {p["muted"]};
+}}
+QFrame#context_summary_row {{
+    background: transparent;
+    border: none;
+}}
+QLabel#prompt_summary[contextHovered="true"],
+QLabel#input_summary[contextHovered="true"] {{
+    color: {p["text"]};
+}}
+QLabel#ai_request_state[state="complete"] {{
+    color: {"#78bd93" if dark_mode else "#3f7b59"};
+    font-weight: 700;
+}}
+QLabel#ai_request_state[state="failed"] {{
+    color: {"#e1848c" if dark_mode else "#a9444e"};
+    font-weight: 700;
+}}
+QLabel#section_label[llmState="running"] {{
+    color: {p["accent"]};
+}}
+QLabel#section_label[llmState="complete"] {{
+    color: {"#78bd93" if dark_mode else "#3f7b59"};
+}}
+QLabel#section_label[llmState="failed"] {{
+    color: {"#e1848c" if dark_mode else "#a9444e"};
+}}
+
 QFrame#output_actions_container {{
-    background: {p["surface"]};
-    border-color: {p["border"]};
+    background: transparent;
+    border: none;
 }}
 QComboBox#language_combo,
 QLineEdit#text_input,
@@ -467,6 +531,44 @@ QLabel#hint_label {{
     color: {p["muted"]};
     background: {p["raised"]};
     border-color: {p["border"]};
+}}
+QFrame#llm_profile_summary {{
+    background: {p["raised"]};
+    border-color: {p["border"]};
+}}
+QPushButton#manage_profiles_button {{
+    color: {p["soft_text"]};
+    background: {p["soft"]};
+    border-color: {p["border_strong"]};
+}}
+QPushButton#manage_profiles_button:hover {{
+    color: {p["strong"]};
+    background: {p["raised"]};
+    border-color: {p["accent"]};
+}}
+QLabel#dialog_heading {{
+    color: {p["strong"]};
+}}
+QLabel#profile_summary_value,
+QLabel#profile_detail {{
+    color: {p["text"]};
+}}
+QLabel#validation_error {{
+    color: {"#ffb4ab" if dark_mode else "#b42318"};
+    background: {"#3b2020" if dark_mode else "#fff1f0"};
+    border-color: {"#7f4545" if dark_mode else "#f3c4c0"};
+}}
+QListWidget#llm_profile_list {{
+    color: {p["text"]};
+    background: {p["surface"]};
+    border-color: {p["border"]};
+}}
+QListWidget#llm_profile_list::item:hover {{
+    background: {p["raised"]};
+}}
+QListWidget#llm_profile_list::item:selected {{
+    color: {p["soft_text"]};
+    background: {p["soft"]};
 }}
 QLabel#update_details {{
     color: {p["text"]};

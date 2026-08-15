@@ -42,8 +42,12 @@ class TranslateService(QObject):
             return result.text
 
     async def _translate_with_llm(self, src_text, src="auto", dest="en"):
-        if self.llm_service is None or self.llm_service.client is None or not self.llm_service.model:
-            return "LLM API is not configured. Set endpoint, model, and API key in Settings."
+        if (
+            self.llm_service is None
+            or self.llm_service.client is None
+            or not self.llm_service.model
+        ):
+            return "LLM API is not configured. Select a default LLM profile in Settings."
 
         source_label = self._language_label(src, allow_auto=True)
         destination_label = self._language_label(dest)
