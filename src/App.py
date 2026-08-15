@@ -53,6 +53,7 @@ from UpdateService import (
     parse_update_manifest,
 )
 from LoggingSetup import configure_app_logger
+from LLMProfiles import active_profile, normalize_ai_settings
 from SettingsStore import SettingsStore
 from SettingsTab import SettingsTab
 from SidebarTabWidget import SidebarTabWidget
@@ -73,9 +74,8 @@ class App(QWidget):
                     "dark_mode": False,
                 },
                 "ai": {
-                    "endpoint": "",
-                    "model": "",
-                    "api_key": "",
+                    "active_profile_id": "",
+                    "profiles": [],
                 },
                 "translate": {
                     "enabled": True,
@@ -96,13 +96,20 @@ class App(QWidget):
             },
         )
         self.settings = self.settings_store.get()
+        normalized_ai_settings = normalize_ai_settings(
+            self.settings.get("ai", {})
+        )
+        if normalized_ai_settings != self.settings.get("ai", {}):
+            self.settings["ai"] = normalized_ai_settings
+            self.settings_store.save(self.settings)
         self._apply_appearance_settings()
         self.clipboard_service = ClipboardService(self)
-        ai_settings = self.settings.get("ai", {})
+        selected_profile = active_profile(self.settings.get("ai", {})) or {}
         self.ai_service = LLMService(
-            endpoint=ai_settings.get("endpoint", ""),
-            api_key=ai_settings.get("api_key", ""),
-            model=ai_settings.get("model", ""),
+            endpoint=selected_profile.get("endpoint", ""),
+            api_key=selected_profile.get("api_key", ""),
+            model=selected_profile.get("model", ""),
+            profile_name=selected_profile.get("name", ""),
         )
         self.translate_service = TranslateService(self.ai_service)
         translate_settings = self.settings.get("translate", {})
@@ -443,12 +450,15 @@ class App(QWidget):
                 )
 
     def _apply_ai_settings(self):
-        ai_settings = self.settings.get("ai", {})
+        selected_profile = active_profile(self.settings.get("ai", {})) or {}
         self.ai_service.configure(
-            endpoint=ai_settings.get("endpoint", ""),
-            api_key=ai_settings.get("api_key", ""),
-            model=ai_settings.get("model", ""),
+            endpoint=selected_profile.get("endpoint", ""),
+            api_key=selected_profile.get("api_key", ""),
+            model=selected_profile.get("model", ""),
+            profile_name=selected_profile.get("name", ""),
         )
+        if hasattr(self, "ai_presenter"):
+            self.ai_presenter.show_model_identity()
 
     def _apply_translate_settings(self):
         translate_settings = self.settings.get("translate", {})

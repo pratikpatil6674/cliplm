@@ -431,13 +431,20 @@ QLabel#field_label {
 QLabel#section_label {
     letter-spacing: 0.3px;
 }
+QLabel#section_label[hasContent="true"] {
+    color: #3478e5;
+}
 QListWidget#prompts_list {
     color: #263448;
     background: #ffffff;
-    border: 1px solid #d8e0e9;
-    border-radius: 9px;
+    border: none;
+    border-radius: 0;
     padding: 4px;
     outline: none;
+}
+QFrame#prompts_header {
+    background: #ffffff;
+    border: none;
 }
 QListWidget#prompts_list::item {
     min-height: 30px;
@@ -473,7 +480,6 @@ QToolButton#prompt_actions_button {
     letter-spacing: 1px;
 }
 QLabel#ai_input_prompt,
-QWidget#input_data_placeholder,
 QLabel#ai_output_text {
     color: #263448;
     background: #f9fbfd;
@@ -481,22 +487,83 @@ QLabel#ai_output_text {
     border-radius: 9px;
     padding: 9px 11px;
 }
+QFrame#prompt_context_card,
+QFrame#input_context_card {
+    background: transparent;
+    border: none;
+}
+QLabel#prompt_summary,
+QLabel#input_summary,
+QLabel#ai_request_status,
+QLabel#ai_request_state {
+    color: #6b7788;
+    font-size: 11px;
+}
+QFrame#context_summary_row {
+    background: transparent;
+    border: none;
+}
+QLabel#prompt_summary[contextHovered="true"],
+QLabel#input_summary[contextHovered="true"] {
+    color: #172233;
+}
+QWidget#input_data_placeholder,
+QScrollArea#ai_input_scroll {
+    color: #263448;
+    background: transparent;
+    border: none;
+}
+QLabel#ai_input_prompt,
+QWidget#input_data_placeholder {
+    background: #f4f8ff;
+    border: 1px solid #c9daf5;
+    border-radius: 8px;
+    padding: 7px 9px;
+}
+QLabel#ai_request_state[state="complete"] {
+    color: #4c8a67;
+    font-weight: 700;
+}
+QLabel#ai_request_state[state="failed"] {
+    color: #b44b55;
+    font-weight: 700;
+}
+QLabel#section_label[llmState="running"] {
+    color: #3478e5;
+}
+QLabel#section_label[llmState="complete"] {
+    color: #4c8a67;
+}
+QLabel#section_label[llmState="failed"] {
+    color: #b44b55;
+}
+
 QLabel#ai_output_text {
-    background: #ffffff;
-    padding-top: 22px;
-    padding-right: 64px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+}
+QScrollArea#ai_output_scroll {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #dbe3ec;
 }
 QFrame#output_card {
     background: transparent;
     border: none;
 }
 QFrame#output_actions_container {
-    background: rgba(255, 255, 255, 238);
-    border: 1px solid #e0e6ed;
-    border-radius: 8px;
+    background: transparent;
+    border: none;
 }
 QToolButton#open_prompts_store_button,
-QToolButton#reload_prompts_button,
+QToolButton#reload_prompts_button {
+    min-width: 22px;
+    max-width: 22px;
+    min-height: 22px;
+    max-height: 22px;
+}
 QToolButton#output_action_button {
     min-width: 26px;
     max-width: 26px;
@@ -592,6 +659,73 @@ QComboBox#text_input {
 QWidget#settings_tab QLineEdit#text_input {
     min-height: 34px;
     padding: 0 10px;
+}
+QPushButton#manage_profiles_button {
+    min-width: 72px;
+    min-height: 34px;
+    padding: 0 12px;
+    color: #285eb9;
+    background: #edf4ff;
+    border-color: #c9daf5;
+}
+QPushButton#manage_profiles_button:hover {
+    color: #1f4f9f;
+    background: #e1ecff;
+    border-color: #a9c4ee;
+}
+
+
+QFrame#llm_profile_summary,
+QFrame#llm_profile_details {
+    background: #f2f6fb;
+    border: 1px solid #e0e8f2;
+    border-radius: 9px;
+}
+QLabel#profile_summary_caption {
+    color: #718096;
+    font-size: 11px;
+    font-weight: 700;
+}
+QLabel#profile_summary_value,
+QLabel#profile_detail {
+    color: #344257;
+}
+QLabel#dialog_heading {
+    color: #1f2d3d;
+    font-size: 17px;
+    font-weight: 700;
+}
+QLabel#dialog_description {
+    color: #66758a;
+}
+QLabel#validation_error {
+    color: #b42318;
+    background: #fff1f0;
+    border: 1px solid #f3c4c0;
+    border-radius: 7px;
+    padding: 7px 9px;
+}
+QListWidget#llm_profile_list {
+    background: #ffffff;
+    border: 1px solid #d8e0e9;
+    border-radius: 9px;
+    padding: 4px;
+    outline: none;
+}
+QListWidget#llm_profile_list::item {
+    min-height: 30px;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+QListWidget#llm_profile_list::item:hover {
+    background: #f2f6fb;
+}
+QListWidget#llm_profile_list::item:selected {
+    color: #2458aa;
+    background: #e6efff;
+}
+QDialog#llm_profile_manager_dialog QLineEdit {
+    min-height: 32px;
 }
 
 QDialog#prompt_editor_dialog QFrame#sidebar,
