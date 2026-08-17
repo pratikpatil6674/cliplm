@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 UPDATE_MANIFEST_URL = (
     "https://packages.cliplm.org/updates/v1/stable.json"
 )
-DOWNLOAD_PAGE_URL = "https://www.cliplm.org/#install"
+DOWNLOAD_PAGE_URL = "https://www.cliplm.org/downloads/"
 MAX_MANIFEST_BYTES = 256 * 1024
 REQUEST_TIMEOUT_MS = 8_000
 
