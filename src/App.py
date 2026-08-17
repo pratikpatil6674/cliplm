@@ -25,7 +25,7 @@ from resources import *
 from ClipboardService import ClipboardService
 from ClipData import ClipData
 from TranslateService import TranslateService
-from SqlDB import ClipboardStore
+from database import ClipboardStore
 
 from ClipboardTab import ClipboardTab
 from ClipboardPresenter import ClipboardPresenter
