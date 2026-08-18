@@ -2,7 +2,7 @@ import multiprocessing
 import os
 import sys
 
-from LinuxSetupVerifier import verify_linux_system_setup
+from linux_setup_verifier import verify_linux_system_setup
 
 
 def main():
