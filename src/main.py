@@ -13,10 +13,10 @@ def main():
             sys.exit(1)
         os.environ["QT_QPA_PLATFORM"] = "xcb"
 
-    from QtSingleInstanceApp import QtSingleInstanceApp
+    from runtime.single_instance import QtSingleInstanceApp
     from PySide6.QtCore import QCoreApplication, Qt
-    from AppVersion import APP_VERSION
-    from resources import APP_ICON
+    from runtime.app_version import APP_VERSION
+    from ui.resources import APP_ICON
 
     single = QtSingleInstanceApp("cliplm-app")
     if single.already_running():
@@ -39,11 +39,11 @@ def main():
     app.setWindowIcon(APP_ICON)
     QCoreApplication.setApplicationVersion(APP_VERSION)
 
-    from ThemeManager import apply_app_theme
+    from ui.theme.manager import apply_app_theme
 
     apply_app_theme(app)
 
-    from App import App
+    from application.app import App
 
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)

@@ -9,7 +9,7 @@ import sqlite3
 import uuid
 from typing import Any, Dict, List, Optional
 
-from ClipData import MimeType
+from core.clip_data import MimeType
 
 from .connection import BaseDB
 from .utils import iso_now
