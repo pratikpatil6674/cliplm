@@ -18,9 +18,9 @@ from runtime.app_version import APP_VERSION
 
 
 DISPLAY_NAME = "ClipLM"
-APPLICATION_ID = "io.github.cliplm.ClipLM"
+APPLICATION_ID = "org.cliplm.ClipLM"
 ORGANIZATION_NAME = "cliplm"
-ORGANIZATION_DOMAIN = "cliplm.github.io"
+ORGANIZATION_DOMAIN = "cliplm.org"
 
 logger = logging.getLogger(__name__)
 
