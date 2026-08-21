@@ -10,7 +10,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
+import os
 from pathlib import Path
+from uuid import uuid4
 
 from PySide6.QtCore import QCoreApplication, QDir, QStandardPaths
 
@@ -54,11 +56,7 @@ def ensure_app_paths() -> AppPaths:
     """
     legacy_paths = _legacy_app_paths()
     _set_current_application_metadata()
-    paths = AppPaths(
-        config=_generic_location(QStandardPaths.GenericConfigLocation),
-        data=_generic_location(QStandardPaths.GenericDataLocation),
-        cache=_generic_location(QStandardPaths.GenericCacheLocation),
-    )
+    paths = _current_app_paths()
 
     migrate_legacy_paths(legacy_paths, paths)
     for path in (paths.config, paths.data, paths.cache):
@@ -75,11 +73,24 @@ def migrate_legacy_paths(legacy: AppPaths, current: AppPaths) -> None:
     unsafe and could silently discard clipboard history.
     """
     migrations = []
+    destinations = {}
     for category in ("config", "data", "cache"):
         source = getattr(legacy, category)
         destination = getattr(current, category)
-        if source == destination or not source.exists():
+        if _path_key(source) == _path_key(destination) or not source.exists():
             continue
+
+        # Two categories sharing one destination is unsafe. This happened on
+        # Windows when generic config and data roots were both %LOCALAPPDATA%.
+        destination_key = _path_key(destination)
+        if destination_key in destinations:
+            other_category = destinations[destination_key]
+            raise AppPathMigrationError(
+                "ClipLM cannot migrate because the "
+                f"{other_category} and {category} directories resolve to the "
+                f"same destination: '{destination}'. Nothing was changed."
+            )
+        destinations[destination_key] = category
 
         # Validate every destination before moving the first directory. This
         # prevents a later conflict from producing a mixed old/new app state.
@@ -93,19 +104,46 @@ def migrate_legacy_paths(legacy: AppPaths, current: AppPaths) -> None:
         migrations.append((category, source, destination))
 
     for category, source, destination in migrations:
-        if destination.exists():
-            destination.rmdir()
-
         destination.parent.mkdir(parents=True, exist_ok=True)
         try:
-            source.replace(destination)
+            _move_to_empty_destination(source, destination)
         except OSError as error:
             raise AppPathMigrationError(
                 f"ClipLM could not migrate {category} data from '{source}' "
-                f"to '{destination}'. The original data was left in place."
+                f"to '{destination}'. No destination data was overwritten."
             ) from error
 
         logger.info("Migrated ClipLM %s directory to %s", category, destination)
+
+
+def _move_to_empty_destination(source: Path, destination: Path) -> None:
+    """Move a directory without asking Windows to remove the destination first.
+
+    Windows cannot replace an existing directory as consistently as POSIX. An
+    empty target is temporarily renamed, then restored if moving the source fails.
+    """
+    empty_placeholder = None
+    if destination.exists():
+        empty_placeholder = destination.with_name(
+            f".{destination.name}.empty-{uuid4().hex}"
+        )
+        destination.replace(empty_placeholder)
+
+        # Recheck after the rename in case something populated the directory
+        # between migration preflight and this operation.
+        if any(empty_placeholder.iterdir()):
+            empty_placeholder.replace(destination)
+            raise OSError(f"Migration destination is not empty: {destination}")
+
+    try:
+        source.replace(destination)
+    except OSError:
+        if empty_placeholder is not None and not destination.exists():
+            empty_placeholder.replace(destination)
+        raise
+
+    if empty_placeholder is not None:
+        empty_placeholder.rmdir()
 
 
 def _legacy_app_paths() -> AppPaths:
@@ -129,6 +167,45 @@ def _set_current_application_metadata() -> None:
     QCoreApplication.setApplicationVersion(APP_VERSION)
 
 
-def _generic_location(location: QStandardPaths.StandardLocation) -> Path:
-    """Append the immutable app ID to an OS-selected generic root."""
-    return Path(QStandardPaths.writableLocation(location)) / APPLICATION_ID
+def _current_app_paths() -> AppPaths:
+    """Build category paths from the generic roots selected by the OS."""
+    return _app_paths_from_roots(
+        Path(QStandardPaths.writableLocation(QStandardPaths.GenericConfigLocation)),
+        Path(QStandardPaths.writableLocation(QStandardPaths.GenericDataLocation)),
+        Path(QStandardPaths.writableLocation(QStandardPaths.GenericCacheLocation)),
+    )
+
+
+def _app_paths_from_roots(
+    config_root: Path,
+    data_root: Path,
+    cache_root: Path,
+) -> AppPaths:
+    """Keep category paths distinct when an OS maps them to the same root.
+
+    On Windows, generic config and data locations commonly share %LOCALAPPDATA%.
+    Only colliding categories receive a suffix, so Linux and macOS retain their
+    existing shorter paths when their platform roots are already distinct.
+    """
+    roots = {
+        "config": Path(config_root),
+        "data": Path(data_root),
+        "cache": Path(cache_root),
+    }
+    root_counts = {}
+    for root in roots.values():
+        key = _path_key(root)
+        root_counts[key] = root_counts.get(key, 0) + 1
+
+    resolved = {}
+    for category, root in roots.items():
+        path = root / APPLICATION_ID
+        if root_counts[_path_key(root)] > 1:
+            path /= category
+        resolved[category] = path
+    return AppPaths(**resolved)
+
+
+def _path_key(path: Path) -> str:
+    """Return a normalized key suitable for same-location comparisons."""
+    return os.path.normcase(os.path.abspath(path))
