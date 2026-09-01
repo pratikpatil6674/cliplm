@@ -1,6 +1,0 @@
-pyperclip
-pyautogui
-pyside6
-pynput
-qt_material
-qasync
