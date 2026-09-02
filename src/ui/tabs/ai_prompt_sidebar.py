@@ -52,6 +52,14 @@ class ElidedLabel(QLabel):
             )
         )
 
+    def minimumSizeHint(self) -> QSize:
+        # Elision works only if layouts may make this label narrower than its
+        # complete source text. Keep the natural line height, but do not let a
+        # long clipboard preview enlarge the top-level window.
+        hint = super().minimumSizeHint()
+        hint.setWidth(0)
+        return hint
+
 
 class ClickableContextRow(QFrame):
     """Keyboard-accessible row used to expand or collapse contextual content."""

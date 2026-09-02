@@ -81,7 +81,7 @@ class App(QWidget):
     def _setup_ui(self, services) -> None:
         self.setObjectName("app_window")
         self.setWindowTitle("ClipLM")
-        self.setGeometry(100, 100, 600, 500)
+        self.setGeometry(100, 100, 700, 500)
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
         self.window_radius = 12
 

@@ -39,6 +39,13 @@ class TranslateTab(QWidget):
 
         self.source_combo = QComboBox()
         self.source_combo.setObjectName("language_combo")
+        # Do not let the longest translated language name determine the minimum
+        # width of the entire application. The controls share the available row
+        # width, while longer selected names are elided by the combo box.
+        self.source_combo.setSizeAdjustPolicy(
+            QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
+        self.source_combo.setMinimumContentsLength(12)
         self.source_combo.currentIndexChanged.connect(self._handle_language_change)
         controls_layout.addWidget(self.source_combo, 1)
 
@@ -52,6 +59,10 @@ class TranslateTab(QWidget):
 
         self.destination_combo = QComboBox()
         self.destination_combo.setObjectName("language_combo")
+        self.destination_combo.setSizeAdjustPolicy(
+            QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
+        self.destination_combo.setMinimumContentsLength(12)
         self.destination_combo.currentIndexChanged.connect(self._handle_language_change)
         controls_layout.addWidget(self.destination_combo, 1)
 
