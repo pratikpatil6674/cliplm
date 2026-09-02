@@ -541,7 +541,9 @@
       position: sticky;
       top: max(92px, calc(50vh - 314px));
       width: 100%;
-      max-width: 745px;
+      /* 700px screenshot + 36px padding + 2px border. Keeping this exact
+         avoids resampling the native 875px HiDPI capture on a 1.25x display. */
+      max-width: 738px;
       margin: 0 auto;
       padding: 18px;
       border: 1px solid rgba(26, 115, 232, 0.12);
@@ -552,7 +554,7 @@
     }
 
     .story-screen {
-      width: 707px;
+      width: 700px;
       max-width: 100%;
       margin: 0 auto;
       overflow: hidden;
@@ -867,7 +869,8 @@
         align-self: start;
         top: 76px;
         z-index: 20;
-        max-width: 737px;
+        /* 700px screenshot + 28px padding + 2px border. */
+        max-width: 730px;
         margin: 0 auto;
         padding: 14px;
         border-radius: 20px;
@@ -1019,6 +1022,8 @@
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
       <li><a href="#install">Install</a></li>
+      <li><a href="https://github.com/pratikpatil6674/cliplm" target="_blank"
+          rel="noopener noreferrer">GitHub</a></li>
     </ul>
     <div class="nav-cta">
       <a class="nav-download" href="#install">Download</a>
@@ -1266,6 +1271,8 @@ sudo apt install cliplm</pre>
     <ul class="footer-links">
       <li><a href="#features">Features</a></li>
       <li><a href="#install">Install</a></li>
+      <li><a href="https://github.com/pratikpatil6674/cliplm" target="_blank"
+          rel="noopener noreferrer">GitHub</a></li>
     </ul>
     <span class="footer-copy">© 2026 ClipLM.</span>
   </footer>
