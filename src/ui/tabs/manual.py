@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QEvent, QTimer, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 
 from core.clip_data import ClipData
 from ui.cards.manual import ManualCard
+from ui.cards.sizing import fit_list_cards
 from ui.dialogs.manual import ManualEntryDialog
 from ui.components.page_header import PageHeader
 from ui.resources import *
@@ -57,6 +58,7 @@ class ManualTab(QWidget):
         self.list_widget.setAlternatingRowColors(False)
         self.list_widget.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.list_widget.setResizeMode(QListWidget.Adjust)
+        self.list_widget.viewport().installEventFilter(self)
         layout.addWidget(self.list_widget)
 
     def _set_styles(self):
@@ -145,6 +147,7 @@ class ManualTab(QWidget):
             self.list_widget.insertItem(0, list_item)
             self.id_to_list_item[id] = list_item
         self.list_widget.setItemWidget(list_item, list_item_widget)
+        QTimer.singleShot(0, self._fit_cards_to_viewport)
 
         if not self._is_populating:
             self._refresh_header()
@@ -156,6 +159,14 @@ class ManualTab(QWidget):
         else:
             self.header.set_count(total)
         self.delete_action.setEnabled(total > 0)
+
+    def eventFilter(self, watched, event):
+        if watched is self.list_widget.viewport() and event.type() == QEvent.Resize:
+            QTimer.singleShot(0, self._fit_cards_to_viewport)
+        return super().eventFilter(watched, event)
+
+    def _fit_cards_to_viewport(self):
+        fit_list_cards(self.list_widget)
 
     def populate_manual_list(self, notes_history):
         self.list_widget.clear()

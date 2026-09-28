@@ -20,6 +20,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QSizePolicy
 from ui.resources import *
 from core.clip_data import ClipData
+from ui.cards.sizing import compact_card_size_hint
 
 class ClipboardCard(QFrame):
     copyRequested = Signal(str)
@@ -37,8 +38,7 @@ class ClipboardCard(QFrame):
         
     def sizeHint(self):
         hint = super().sizeHint()
-        hint.setHeight(min(hint.height(), self.MAX_CARD_HEIGHT))
-        return hint
+        return compact_card_size_hint(self, hint, self.MAX_CARD_HEIGHT)
 
     def _setup_ui(self):
         self.setObjectName("clipboard_card")
@@ -82,8 +82,10 @@ class ClipboardCard(QFrame):
         # self.text_field.setMaximumHeight(self.MAX_CARD_HEIGHT - 30)  # allow padding
 
         self.clip_widget = self.clip_data.create_preview_widget(max_height=self.MAX_CARD_HEIGHT - 30)
-        preview_vertical_policy = self.clip_widget.sizePolicy().verticalPolicy()
-        self.clip_widget.setSizePolicy(QSizePolicy.Ignored, preview_vertical_policy)
+        preview_policy = self.clip_widget.sizePolicy()
+        preview_policy.setHorizontalPolicy(QSizePolicy.Ignored)
+        preview_policy.setHeightForWidth(self.clip_widget.wordWrap())
+        self.clip_widget.setSizePolicy(preview_policy)
         self.clip_widget.setMinimumWidth(0)
         layout.addWidget(
             self.clip_widget,

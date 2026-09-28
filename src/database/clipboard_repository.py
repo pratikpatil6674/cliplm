@@ -61,8 +61,12 @@ class ClipboardTable:
         preview_text: Optional[str] = None,
         thumbnail_bytes: Optional[bytes] = None,
         metadata: Optional[Dict[str, Any]] = None,
-    ) -> str:
+    ) -> Optional[str]:
         """Insert a clip, deduplicating only within this repository's bucket."""
+        if not content:
+            logger.debug("Ignored a zero-byte %s clipboard item", mime)
+            return None
+
         content_hash = self.sha256(content)
         now = iso_now()
         tags_json = self.json_dumps(tags or [])
@@ -206,6 +210,11 @@ class ClipboardTable:
         result = []
         for row in rows:
             record = dict(row)
+            # Older versions could persist empty text payloads. Keep the
+            # database untouched, but do not manufacture blank cards for them.
+            if not record.get("content_size"):
+                continue
+
             if record["content_type"] == MimeType.IMAGE:
                 record["content"] = record["thumbnail"]
             elif record["content_type"] in (MimeType.TEXT, MimeType.HTML):

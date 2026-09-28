@@ -7,10 +7,20 @@ from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget, QTextEdit
 import base64
 import io
 import logging
+import unicodedata
 logger=logging.getLogger(__name__)
 
 from core import image_utils as ImageUtils
 from core.html_utils import html_preview_text
+
+
+def _has_visible_text(value: Any) -> bool:
+    """Ignore whitespace and invisible control/format characters."""
+    return any(
+        not character.isspace()
+        and not unicodedata.category(character).startswith("C")
+        for character in str(value or "")
+    )
 
 class MimeType(str, Enum):
     TEXT = "text"
@@ -98,6 +108,12 @@ class ClipData:
             obj = cls(MimeType.HTML, str(html))
             obj.data_bytes = html.encode("utf-8") if isinstance(html, str) else bytes(html)
             obj.preview_text = html_preview_text(html)[:1000]
+            if not _has_visible_text(obj.preview_text) and qmime.hasText():
+                # Some applications provide useful plain text alongside HTML
+                # that contains no directly extractable text nodes.
+                obj.preview_text = qmime.text()[:1000]
+            if not _has_visible_text(obj.preview_text):
+                return None
             return obj
 
         # Text (plain)
@@ -106,6 +122,8 @@ class ClipData:
             obj = cls(MimeType.TEXT, str(text))
             obj.data_bytes = text.encode("utf-8") if isinstance(text, str) else bytes(text)
             obj.preview_text = text[:1000]  # limit preview size
+            if not _has_visible_text(obj.preview_text):
+                return None
             return obj
 
         # URLs (file lists)
@@ -198,8 +216,10 @@ class ClipData:
             lbl.setObjectName("clip_preview")
             if self.data is not None:
                 pix = QPixmap.fromImage(self.data)
-                # lbl.setPixmap(pix.scaledToHeight(max_height, Qt.SmoothTransformation))
-                lbl.setPixmap(pix)
+                if pix.isNull():
+                    lbl.setText("Image preview unavailable")
+                else:
+                    lbl.setPixmap(pix)
             else:
                 lbl.setText("Image data not available")
                 logger.debug("Image data not available for preview")
@@ -227,6 +247,9 @@ class ClipData:
                 snippet = base64.b64encode(snippet[:120]).decode("ascii")
             lbl.setText(snippet)
             lbl.setTextFormat(Qt.PlainText)
+
+        if not _has_visible_text(lbl.text()):
+            lbl.setText("Preview unavailable")
 
         lbl.setWordWrap(True)
         lbl.setAlignment(Qt.AlignTop | Qt.AlignLeft)

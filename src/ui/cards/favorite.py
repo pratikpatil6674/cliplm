@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, Signal, QMimeData
 from functools import partial
 import sys
 from ui.resources import *
+from ui.cards.sizing import compact_card_size_hint
 
 class FavoriteCard(QFrame):
     copyRequested = Signal(str)
@@ -30,8 +31,7 @@ class FavoriteCard(QFrame):
     
     def sizeHint(self):
         hint = super().sizeHint()
-        hint.setHeight(min(hint.height(), self.MAX_CARD_HEIGHT))
-        return hint
+        return compact_card_size_hint(self, hint, self.MAX_CARD_HEIGHT)
 
     def _setup_ui(self):
         self.setObjectName("favorite_card")

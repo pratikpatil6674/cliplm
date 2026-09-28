@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from core.clip_data import ClipData
 from ui.cards.clipboard import ClipboardCard
+from ui.cards.sizing import fit_list_cards
 from ui.components.page_header import PageHeader
 
 
@@ -135,17 +136,7 @@ class ClipboardTab(QWidget, IClipboardTab):
         return super().eventFilter(watched, event)
 
     def _fit_cards_to_viewport(self):
-        for row in range(self.list.count()):
-            item = self.list.item(row)
-            card = self.list.itemWidget(item)
-            if card is None:
-                continue
-
-            item_rect = self.list.visualItemRect(item)
-            left_inset = max(0, card.x() - item_rect.x())
-            card_width = item_rect.width() - (left_inset * 2)
-            if card_width > 0:
-                card.setFixedWidth(card_width)
+        fit_list_cards(self.list)
 
     def delete_list_item(self, id: str):
         list_item = self.id_to_list_item.pop(id, None)

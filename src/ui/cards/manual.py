@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt, Signal, QSize
 from core.clip_data import ClipData
 # Example constants (use your resource resolution)
 from ui.resources import *
+from ui.cards.sizing import compact_card_size_hint
 
 
 class ManualCard(QFrame):
@@ -41,8 +42,7 @@ class ManualCard(QFrame):
 
     def sizeHint(self):
         hint = super().sizeHint()
-        hint.setHeight(min(hint.height(), self.MAX_CARD_HEIGHT))
-        return hint
+        return compact_card_size_hint(self, hint, self.MAX_CARD_HEIGHT)
 
     def _setup_ui(self) -> None:
         self.setObjectName("manual_card")
