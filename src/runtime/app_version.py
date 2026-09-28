@@ -18,7 +18,7 @@ def _resolve_app_version() -> str:
 
     try:
         project_text = (
-            Path(__file__).resolve().parent.parent / "pyproject.toml"
+            Path(__file__).resolve().parents[2] / "pyproject.toml"
         ).read_text(encoding="utf-8")
         match = re.search(r'^version\s*=\s*"([^"]+)"', project_text, re.MULTILINE)
         if match:
