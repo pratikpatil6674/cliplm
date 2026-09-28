@@ -19,6 +19,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "debugpy>=1.8.20",
+    "pytest>=9.1.1",
 ]
 
 [project.scripts]
